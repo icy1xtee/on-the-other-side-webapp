@@ -13,6 +13,7 @@ export const theme = {
     letterbox: '#000000',
     stageBackground: '#1b1b22',
     text: '#f0f0f0',
+    textDisabled: 'rgba(240, 240, 240, 0.35)',
     speakerName: '#ffcc66',
     accent: '#66aaff',
     dialogueBackground: 'rgba(12, 12, 16, 0.85)',
