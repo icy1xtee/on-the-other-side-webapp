@@ -67,18 +67,24 @@
 | Типизация темы | 2026-10-09 | `DefaultTheme extends AppTheme`, `AppTheme = typeof theme` — структура описана один раз, в объекте темы |
 | Единицы в токенах | 2026-10-09 | Размеры — числа в px макета 1920×1080, `px` дописывается в стилях; длительности — `…Ms` |
 | Черновая геометрия | 2026-10-09 | Диалог и выборы — дефолты `gui.rpy` Ren'Py для 1920×1080 |
+| Минимальное окно | 2026-10-09 | Заглушка «Окно слишком маленькое» при `scale < 0.5` (меньше 960×540); порог — `MIN_STAGE_SCALE` |
+| Масштабирование кадра | 2026-10-09 | `transform-origin: 0 0`, `translate(offset) scale(k)` инлайн-стилем; смещение округляется до физического пикселя; **без `will-change`** |
+| Слои кадра | 2026-10-09 | Слоты-пропсы `Stage`; слои `pointer-events: none`, их дети — `auto` |
 
 ## Что уже есть в коде
 
-- `src/shared/config/stage.ts` — `STAGE_WIDTH = 1920`, `STAGE_HEIGHT = 1080`.
-- `src/shared/lib/stageScale.ts` — `getStageScale(w, h) = min(w / 1920, h / 1080)`, покрыта
-  тестом.
+- `src/shared/config/stage.ts` — `STAGE_WIDTH = 1920`, `STAGE_HEIGHT = 1080`,
+  `MIN_STAGE_SCALE = 0.5`.
+- `src/shared/lib/stageScale.ts` — `getStageScale(w, h)` и `fitStage(w, h, dpr)` (масштаб +
+  смещение с привязкой к пикселю), 7 тестов.
+- `src/shared/lib/useStageFit.ts` — хук на `ResizeObserver` (шаг 3).
+- `src/widgets/stage/Stage.tsx` — кадр со слоями-слотами и заглушкой (шаг 3).
 - `src/app/styles/theme.ts` — тема с черновыми токенами, `AppTheme` (шаг 1).
 - `src/styled.d.ts` — расширение `DefaultTheme` (шаг 1).
 - `src/app/styles/global.ts` — `GlobalStyle`: reset, letterbox-фон, `user-select: none`
   на `body` (шаг 2).
-- `src/app/App.tsx` — `ThemeProvider` + `GlobalStyle` + заглушка-заголовок; на шаге 4
-  сменится переключением экранов.
+- `src/app/App.tsx` — `ThemeProvider` + `GlobalStyle` + `Stage` с временной отладочной
+  разметкой (пунктир по краям, абзац текста); на шаге 4 сменится переключением экранов.
 - `src/main.tsx` — точка входа со `StrictMode`, остаётся в `src/` (на неё ссылается
   `index.html`).
 
@@ -88,8 +94,8 @@
 src/app/            App.tsx, styles/theme.ts, styles/global.ts,
                     providers/StoreProvider.tsx, stores/RootStore.ts, stores/UiStore.ts
 src/pages/          main-menu/MainMenuPage.tsx, game/GamePage.tsx
-src/widgets/        stage/Stage.tsx, stage/layers.ts
-src/shared/lib/     useStageScale.ts
+src/widgets/        stage/Stage.tsx            (layers.ts не понадобился — порядок слоёв в теме)
+src/shared/lib/     useStageFit.ts             (в спецификации — useStageScale)
 src/shared/ui/      Button.tsx
 src/styled.d.ts     расширение DefaultTheme
 ```
@@ -104,9 +110,10 @@ src/styled.d.ts     расширение DefaultTheme
 
 ## Риски
 
-- **Мыльный текст при дробном `scale`.** Проверить на абзаце русского текста при
-  `scale ≈ 0.63` и `1.0`. Если заметно — переход на единицы контейнера (`cqw`).
-- **Полупиксельная кайма** по краям кадра при дробном масштабе и `devicePixelRatio`.
+- ~~**Мыльный текст при дробном `scale`.**~~ Снят на шаге 3: при `0.63` и `1.0` текст резкий
+  (dpr 1); остаётся досмотр на реальном мониторе с масштабом Windows 125%/150%.
+- ~~**Полупиксельная кайма**~~ Снята на шаге 3: смещение кадра округляется до физического
+  пикселя.
 - **Подмена шрифта после дизайна** поменяет переносы строк. На этапе 1 текста мало, риск
   переезжает на этап 3.
 
