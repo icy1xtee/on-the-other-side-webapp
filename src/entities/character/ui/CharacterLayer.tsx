@@ -1,5 +1,6 @@
 import type { SpritePosition } from '@engine';
 import styled from 'styled-components';
+import { u } from '@/shared/lib/units';
 
 type Sprite = {
   tag: string;
@@ -26,12 +27,15 @@ export function CharacterLayer({ sprites }: CharacterLayerProps) {
   );
 }
 
+// A column from under the header to the bottom of the scene; the art keeps its proportions and
+// stands on the scene's bottom edge. The height is explicit: an absolutely positioned image with
+// `height: auto` takes its own height and ignores `bottom`.
 const Sprite = styled.img<{ $at: SpritePosition }>`
   position: absolute;
-  left: ${({ theme, $at }) => theme.sprite[$at].left}px;
-  top: ${({ theme }) => theme.sprite.top}px;
-  width: ${({ theme }) => theme.sprite.width}px;
-  height: ${({ theme }) => theme.sprite.bottom - theme.sprite.top}px;
+  left: ${({ theme, $at }) => theme.sprite[$at]}%;
+  width: ${({ theme }) => theme.sprite.widthPercent}%;
+  top: ${({ theme }) => u(theme.header.height)};
+  height: ${({ theme }) => `calc(${theme.layout.scenePercent}% - ${u(theme.header.height)})`};
   object-fit: contain;
   object-position: center bottom;
 `;

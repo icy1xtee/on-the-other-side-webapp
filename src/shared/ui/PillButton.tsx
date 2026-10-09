@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import styled from 'styled-components';
+import { u } from '@/shared/lib/units';
 
 /**
  * The design's small rounded control button. Defaults to `type="button"`.
@@ -21,23 +22,42 @@ export function PillButton({ onMouseDown, ...props }: ComponentProps<'button'>) 
 }
 
 const StyledPillButton = styled.button`
-  height: ${({ theme }) => theme.button.height}px;
-  padding: 0 ${({ theme }) => theme.button.paddingX}px;
-  border-radius: ${({ theme }) => theme.button.radius}px;
-  border: 1.5px solid ${({ theme }) => theme.colors.buttonBorder};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  height: ${({ theme }) => u(theme.button.height)};
+  padding: 0 ${({ theme }) => u(theme.button.paddingX)};
+  border-radius: ${({ theme }) => u(theme.button.radius)};
+  border: 1px solid ${({ theme }) => theme.colors.buttonBorder};
   background: ${({ theme }) => theme.colors.buttonBackground};
   color: ${({ theme }) => theme.colors.buttonText};
-  font-size: ${({ theme }) => theme.typography.buttonSize}px;
+  font-size: ${({ theme }) => u(theme.typography.buttonSize)};
   line-height: 1;
+  white-space: nowrap;
   transition: background 150ms;
 
-  &:enabled:hover {
+  /* Lucide icons: sized from the button's font, so they scale with the UI; thinner than
+     Lucide's default 2 to match the design's hairlines. */
+  & > svg {
+    flex: none;
+    width: 1.15em;
+    height: 1.15em;
+    stroke-width: ${({ theme }) => theme.icons.strokeWidth};
+  }
+
+  &:enabled:hover,
+  &[aria-pressed='true'] {
     background: ${({ theme }) => theme.colors.buttonBackgroundHover};
+  }
+
+  &[aria-pressed='true'] {
+    border-color: ${({ theme }) => theme.colors.accent};
   }
 
   &:focus-visible {
     outline: 2px solid ${({ theme }) => theme.colors.accent};
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
 
   &:disabled {

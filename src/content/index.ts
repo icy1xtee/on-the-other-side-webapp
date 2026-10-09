@@ -4,5 +4,6 @@ export { scenes, startScene } from './scenes';
 export { variableDefaults, type GameVars } from './variables';
 export { speakers, type SpeakerId } from './speakers';
 export { assets } from './assets';
+export { en as storyEn } from './locales/en';
 export type * from './ids';
 export type { ContentIds } from './types';

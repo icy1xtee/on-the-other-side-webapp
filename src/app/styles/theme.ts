@@ -1,16 +1,12 @@
-import { STAGE_HEIGHT, STAGE_WIDTH } from '@/shared/config/stage';
-
 /**
- * Tokens from the Claude Design layout (.claude/ref/html). The design was drawn for a ~1280px
- * wide page, so its pixel values are scaled by 1.5 to the 1920×1080 stage: the frame then looks
- * like the design at 1280. Sizes are px of the stage layout.
+ * Tokens from the Claude Design layout (.claude/ref/html). Sizes are design px — the design's own
+ * numbers for a 1280×720 page — and reach the screen through `u()`, scaled by the UI scale:
+ * at 1920×1080 everything is 1.5× larger. Proportions and positions are percentages of the window.
  */
 export const theme = {
-  stage: {
-    width: STAGE_WIDTH,
-    height: STAGE_HEIGHT,
-    /** The scene art fills the top 75%; the dialogue panel lies over its shaded bottom edge. */
-    sceneHeight: 810,
+  layout: {
+    /** The scene art fills the top 75% of the window; the dialogue panel lies over its bottom. */
+    scenePercent: 75,
   },
   colors: {
     letterbox: '#000000',
@@ -44,61 +40,65 @@ export const theme = {
     logoMark: 'radial-gradient(circle at 32% 30%, #a9e3ee 0%, #4f9fb8 40%, #1c4e66 100%)',
   },
   shadows: {
-    header: '0 1.5px 27px rgba(60, 110, 210, 0.18)',
-    panel: '0 -15px 60px rgba(0, 0, 0, 0.35)',
-    logoMark: '0 0 21px rgba(110, 190, 215, 0.35)',
+    header: '0 1px 18px rgba(60, 110, 210, 0.18)',
+    panel: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+    logoMark: '0 0 14px rgba(110, 190, 215, 0.35)',
   },
   typography: {
     fontFamily: "'Geist', system-ui, sans-serif",
     monoFamily: "'Geist Mono', ui-monospace, monospace",
-    titleSize: 96,
-    interfaceSize: 33,
-    speakerNameSize: 33,
-    dialogueSize: 24.75,
-    buttonSize: 19.5,
-    logoSize: 16.5,
-    captionSize: 15,
+    titleSize: 64,
+    interfaceSize: 22,
+    speakerNameSize: 22,
+    dialogueSize: 16.5,
+    buttonSize: 13,
+    logoSize: 11,
+    captionSize: 10,
     lineHeight: 1.6,
   },
   header: {
-    height: 102,
-    paddingX: 78,
-    logoMarkSize: 33,
+    height: 68,
+    paddingX: 52,
+    logoMarkSize: 22,
   },
   dialogue: {
-    insetX: 78,
-    bottom: 9,
-    paddingTop: 35,
-    paddingX: 42,
-    paddingBottom: 36,
-    radius: 24,
-    gapX: 33,
-    gapY: 24,
-    portraitSize: 100,
-    portraitRadius: 18,
-    nameGap: 14,
-    textMaxWidth: 1380,
-    caretWidth: 12,
-    caretHeight: 28,
+    insetX: 52,
+    bottom: 6,
+    paddingTop: 23,
+    paddingX: 28,
+    paddingBottom: 24,
+    radius: 16,
+    gapX: 22,
+    gapY: 16,
+    portraitSize: 67,
+    portraitRadius: 12,
+    nameGap: 9,
+    textMaxWidth: 920,
+    /** Narrower than this, the buttons wrap below the text. */
+    textMinWidth: 440,
+    caretWidth: 8,
+    caretHeight: 19,
   },
   button: {
-    height: 45,
-    paddingX: 19.5,
-    radius: 16.5,
-    gap: 10.5,
+    height: 30,
+    paddingX: 13,
+    radius: 11,
+    gap: 7,
   },
-  /** Sprite columns for `at left / center / right`: the design's right column, mirrored. */
+  icons: {
+    /** Lucide draws at 2 on a 24px grid; thinner lines match the design's hairline borders. */
+    strokeWidth: 1.75,
+  },
+  /** Sprite columns for `at left / center / right`, in % of the window width: the design's right column, mirrored. */
   sprite: {
-    width: 518,
-    top: 102,
-    bottom: 810,
-    left: { left: 212 },
-    center: { left: 701 },
-    right: { left: 1190 },
+    widthPercent: 27,
+    left: 11,
+    center: 36.5,
+    right: 62,
   },
   choice: {
-    width: 1185,
-    gap: 33,
+    width: 790,
+    gap: 22,
   },
   zIndex: {
     background: 0,

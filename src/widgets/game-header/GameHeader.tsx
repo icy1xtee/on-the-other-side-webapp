@@ -1,4 +1,7 @@
+import { Cog } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
+import { u } from '@/shared/lib/units';
 import { PillButton } from '@/shared/ui/PillButton';
 
 type GameHeaderProps = {
@@ -8,14 +11,20 @@ type GameHeaderProps = {
 
 /** The bar across the top of the game screen: logo and settings. */
 export function GameHeader({ onSettings }: GameHeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <Header>
       <Logo>
         <LogoMark />
         <LogoText>on the other side</LogoText>
       </Logo>
-      <SettingsButton aria-label="Настройки" onClick={onSettings}>
-        ⚙︎
+      <SettingsButton
+        aria-label={t('header.settings')}
+        title={t('header.settings')}
+        onClick={onSettings}
+      >
+        <Cog />
       </SettingsButton>
     </Header>
   );
@@ -24,42 +33,43 @@ export function GameHeader({ onSettings }: GameHeaderProps) {
 const Header = styled.header`
   position: absolute;
   inset: 0 0 auto;
-  height: ${({ theme }) => theme.header.height}px;
-  padding: 0 ${({ theme }) => theme.header.paddingX}px;
+  height: ${({ theme }) => u(theme.header.height)};
+  padding: 0 ${({ theme }) => u(theme.header.paddingX)};
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: ${({ theme }) => theme.surfaces.header};
-  backdrop-filter: blur(21px);
-  border-bottom: 1.5px solid ${({ theme }) => theme.colors.headerBorder};
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid ${({ theme }) => theme.colors.headerBorder};
   box-shadow: ${({ theme }) => theme.shadows.header};
 `;
 
 const Logo = styled.div`
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: ${u(10)};
 `;
 
 const LogoMark = styled.div`
-  width: ${({ theme }) => theme.header.logoMarkSize}px;
-  height: ${({ theme }) => theme.header.logoMarkSize}px;
+  width: ${({ theme }) => u(theme.header.logoMarkSize)};
+  height: ${({ theme }) => u(theme.header.logoMarkSize)};
   border-radius: 50%;
   background: ${({ theme }) => theme.surfaces.logoMark};
   box-shadow: ${({ theme }) => theme.shadows.logoMark};
 `;
 
 const LogoText = styled.div`
-  width: 195px;
-  margin-top: 18px;
+  width: ${u(130)};
+  margin-top: ${u(12)};
   font-family: ${({ theme }) => theme.typography.monoFamily};
-  font-size: ${({ theme }) => theme.typography.logoSize}px;
+  font-size: ${({ theme }) => u(theme.typography.logoSize)};
   line-height: 1.3;
   letter-spacing: 0.52em;
 `;
 
 const SettingsButton = styled(PillButton)`
-  width: 51px;
+  width: ${u(34)};
+  height: ${u(34)};
   padding: 0;
-  font-size: 22px;
+  font-size: ${u(15)};
 `;

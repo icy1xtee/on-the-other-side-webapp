@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import styled from 'styled-components';
+import { u } from '@/shared/lib/units';
 
 /** Text button for game menus. Defaults to `type="button"` so it never submits a form. */
 export function Button(props: ComponentProps<'button'>) {
@@ -7,8 +8,8 @@ export function Button(props: ComponentProps<'button'>) {
 }
 
 const StyledButton = styled.button`
-  padding: 8px 24px;
-  font-size: ${({ theme }) => theme.typography.interfaceSize}px;
+  padding: ${u(5)} ${u(16)};
+  font-size: ${({ theme }) => u(theme.typography.interfaceSize)};
   color: ${({ theme }) => theme.colors.text};
   transition: color 150ms;
 

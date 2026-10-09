@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import styled from 'styled-components';
+import { u } from '@/shared/lib/units';
 
 const VISIBLE_MS = 2000;
 
@@ -25,15 +26,16 @@ export function NoticeToast({ notice, onHide }: NoticeToastProps) {
 
 const Toast = styled.div`
   position: absolute;
-  top: ${({ theme }) => theme.header.height + 24}px;
+  top: ${({ theme }) => u(theme.header.height + 16)};
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 27px;
-  border-radius: ${({ theme }) => theme.button.radius}px;
-  border: 1.5px solid ${({ theme }) => theme.colors.buttonBorder};
+  padding: ${u(8)} ${u(18)};
+  border-radius: ${({ theme }) => u(theme.button.radius)};
+  border: 1px solid ${({ theme }) => theme.colors.buttonBorder};
   background: ${({ theme }) => theme.surfaces.panel};
   box-shadow: ${({ theme }) => theme.shadows.panel};
   color: ${({ theme }) => theme.colors.buttonText};
-  font-size: ${({ theme }) => theme.typography.buttonSize}px;
+  font-size: ${({ theme }) => u(theme.typography.buttonSize)};
+  white-space: nowrap;
   pointer-events: none;
 `;

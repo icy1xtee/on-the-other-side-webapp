@@ -37,6 +37,11 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 - Three TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
   (engine, **no DOM**), `tsconfig.node.json` (vite config).
 - `zod` arrives at stage 5, `howler` at stage 6 — don't add them earlier.
+- Icons: **lucide-react**, named imports only (`import { Cog } from 'lucide-react'`) so the
+  bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: inside `PillButton`
+  an icon is sized in `em` from the button font (so it scales with the UI) and drawn at
+  `theme.icons.strokeWidth`. Icons are decorative by default (`aria-hidden`); an icon-only
+  button carries the `aria-label`.
 - Fonts: Geist / Geist Mono from `@fontsource/geist` and `@fontsource/geist-mono` (the Google
   Fonts builds, **with Cyrillic** — `@fontsource/geist-sans` is Latin-only). Import the
   per-weight CSS (`400.css`); the per-subset files lack `unicode-range` and can't be combined.
@@ -45,8 +50,23 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 
 The design comes from Claude Design: `.claude/ref/html/on-the-other-side-demo-layout-design.html`
 (git-ignored, a bundled page — unpack its template rather than reading it raw), demo art in
-`.claude/ref/images/`. It is drawn for a ~1280px page: **design px × 1.5** = stage px. Tokens
-live in `src/app/styles/theme.ts`; components never hard-code colours or sizes.
+`.claude/ref/images/`. Tokens live in `src/app/styles/theme.ts` as **design px** (the design's
+own numbers for a 1280×720 page); components never hard-code colours or sizes.
+
+The layout is fluid — no fixed frame, no bars. `Stage` sets the UI scale
+`min(width/1280, height/720)` (≥ 0.75) as `--u`; every size goes through `u(designPx)` from
+`shared/lib/units.ts`, every position is a percentage. A phone held upright gets a "rotate your
+device" hint. Check layout changes at 1920×1080, 2560×1080, 1024×768 and 844×390.
+
+## Localisation
+
+i18next, Russian by default, English additional. Never hard-code a visible string.
+
+- Interface: namespace `ui`, flat keys (`'menu.newGame'`). `shared/i18n/locales/ru.ts` defines
+  the keys; `en.ts` must `satisfies UiDictionary`. `t()` is typed (`src/i18next.d.ts`).
+- Story: namespace `story`. Scenes are written in Russian and **the Russian line is the key**;
+  English lives in `src/content/locales/en.ts`. Editing a line in a scene orphans its
+  translation — `translations.test.ts` lists missing and stale keys.
 
 ## Layout and boundaries
 

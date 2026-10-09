@@ -1,5 +1,15 @@
+import { useTranslation } from 'react-i18next';
 import styled, { keyframes } from 'styled-components';
+import { u } from '@/shared/lib/units';
 import { PillButton } from '@/shared/ui/PillButton';
+
+// System controls from the design. Save and load arrive in stage 5; auto, skip and history are
+// beyond 0.1 and are stubs until then; the choice history is locked. Clicks on any of them never
+// advance the dialogue.
+const SYSTEM_ACTIONS = ['auto', 'skip', 'history', 'save', 'load', 'choices'] as const;
+const LOCKED_ACTIONS: ReadonlySet<SystemAction> = new Set(['choices']);
+
+export type SystemAction = (typeof SYSTEM_ACTIONS)[number];
 
 type DialogueBoxProps = {
   /** Null for narration: no name, no portrait. */
@@ -12,14 +22,10 @@ type DialogueBoxProps = {
   onSystemAction: (action: SystemAction) => void;
 };
 
-// System controls from the design. Save and load arrive in stage 5; auto, skip and history are
-// beyond 0.1. Until then each one is a stub, and clicks on them never advance the dialogue.
-const SYSTEM_ACTIONS = ['Auto', 'Skip', 'History', 'Save', 'Load', 'Choices'] as const;
-
-export type SystemAction = (typeof SYSTEM_ACTIONS)[number];
-
-/** The design's dialogue panel along the bottom of the frame. */
+/** The design's dialogue panel along the bottom of the window. */
 export function DialogueBox({ speaker, text, visibleText, onSystemAction }: DialogueBoxProps) {
+  const { t } = useTranslation();
+
   return (
     <Panel>
       {speaker?.portrait && <Portrait src={speaker.portrait} alt="" draggable={false} />}
@@ -42,8 +48,13 @@ export function DialogueBox({ speaker, text, visibleText, onSystemAction }: Dial
       </Body>
       <Actions>
         {SYSTEM_ACTIONS.map((action) => (
-          <PillButton key={action} onClick={() => onSystemAction(action)}>
-            {action}
+          <PillButton
+            key={action}
+            disabled={LOCKED_ACTIONS.has(action)}
+            title={LOCKED_ACTIONS.has(action) ? t('dialogue.locked') : undefined}
+            onClick={() => onSystemAction(action)}
+          >
+            {t(`dialogue.action.${action}`)}
           </PillButton>
         ))}
       </Actions>
@@ -56,18 +67,22 @@ const blink = keyframes`
   50%, 100% { opacity: 0; }
 `;
 
+// The text takes what the buttons leave, down to a readable minimum; below that — on a narrow
+// window — the buttons wrap under the text instead of squeezing it. The minimum is smaller than
+// the design's: Russian button labels are longer than the English ones it was drawn with.
 const Panel = styled.section`
   position: absolute;
-  left: ${({ theme }) => theme.dialogue.insetX}px;
-  right: ${({ theme }) => theme.dialogue.insetX}px;
-  bottom: ${({ theme }) => theme.dialogue.bottom}px;
+  left: ${({ theme }) => u(theme.dialogue.insetX)};
+  right: ${({ theme }) => u(theme.dialogue.insetX)};
+  bottom: ${({ theme }) => u(theme.dialogue.bottom)};
   padding: ${({ theme }) =>
-    `${theme.dialogue.paddingTop}px ${theme.dialogue.paddingX}px ${theme.dialogue.paddingBottom}px`};
+    `${u(theme.dialogue.paddingTop)} ${u(theme.dialogue.paddingX)} ${u(theme.dialogue.paddingBottom)}`};
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: ${({ theme }) => `${theme.dialogue.gapY}px ${theme.dialogue.gapX}px`};
-  border-radius: ${({ theme }) => theme.dialogue.radius}px;
-  border: 1.5px solid ${({ theme }) => theme.colors.panelBorder};
+  gap: ${({ theme }) => `${u(theme.dialogue.gapY)} ${u(theme.dialogue.gapX)}`};
+  border-radius: ${({ theme }) => u(theme.dialogue.radius)};
+  border: 1px solid ${({ theme }) => theme.colors.panelBorder};
   background: ${({ theme }) => theme.surfaces.panel};
   box-shadow: ${({ theme }) => theme.shadows.panel};
   cursor: pointer;
@@ -75,9 +90,9 @@ const Panel = styled.section`
 
 const Portrait = styled.img`
   flex: 0 0 auto;
-  width: ${({ theme }) => theme.dialogue.portraitSize}px;
-  height: ${({ theme }) => theme.dialogue.portraitSize}px;
-  border-radius: ${({ theme }) => theme.dialogue.portraitRadius}px;
+  width: ${({ theme }) => u(theme.dialogue.portraitSize)};
+  height: ${({ theme }) => u(theme.dialogue.portraitSize)};
+  border-radius: ${({ theme }) => u(theme.dialogue.portraitRadius)};
   object-fit: cover;
   object-position: center top;
 `;
@@ -86,18 +101,23 @@ const Portrait = styled.img`
 // keeps its size when narration and dialogue alternate.
 const Body = styled.div`
   flex: 1 1 0;
-  min-width: 0;
+  min-width: min(
+    ${({ theme }) => u(theme.dialogue.textMinWidth)},
+    100% - ${({ theme }) => u(theme.dialogue.portraitSize + theme.dialogue.gapX)}
+  );
   min-height: ${({ theme }) =>
-    theme.typography.speakerNameSize +
-    theme.dialogue.nameGap +
-    2 * theme.typography.dialogueSize * theme.typography.lineHeight}px;
+    u(
+      theme.typography.speakerNameSize +
+        theme.dialogue.nameGap +
+        2 * theme.typography.dialogueSize * theme.typography.lineHeight,
+    )};
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.dialogue.nameGap}px;
+  gap: ${({ theme }) => u(theme.dialogue.nameGap)};
 `;
 
 const Name = styled.div`
-  font-size: ${({ theme }) => theme.typography.speakerNameSize}px;
+  font-size: ${({ theme }) => u(theme.typography.speakerNameSize)};
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -106,9 +126,8 @@ const Name = styled.div`
 
 const Text = styled.p`
   position: relative;
-  max-width: ${({ theme }) => theme.dialogue.textMaxWidth}px;
-  min-height: ${({ theme }) => 2 * theme.typography.dialogueSize * theme.typography.lineHeight}px;
-  font-size: ${({ theme }) => theme.typography.dialogueSize}px;
+  max-width: ${({ theme }) => u(theme.dialogue.textMaxWidth)};
+  font-size: ${({ theme }) => u(theme.typography.dialogueSize)};
   line-height: ${({ theme }) => theme.typography.lineHeight};
   color: ${({ theme }) => theme.colors.dialogueText};
   text-wrap: pretty;
@@ -125,19 +144,20 @@ const Typed = styled.span`
 
 const Caret = styled.span`
   display: inline-block;
-  width: ${({ theme }) => theme.dialogue.caretWidth}px;
-  height: ${({ theme }) => theme.dialogue.caretHeight}px;
-  margin-left: 3px;
-  vertical-align: -4.5px;
+  width: ${({ theme }) => u(theme.dialogue.caretWidth)};
+  height: ${({ theme }) => u(theme.dialogue.caretHeight)};
+  margin-left: ${u(2)};
+  vertical-align: ${u(-3)};
   background: ${({ theme }) => theme.colors.accent};
   animation: ${blink} 1s steps(1) infinite;
 `;
 
 const Actions = styled.div`
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   margin-left: auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: ${({ theme }) => theme.button.gap}px;
+  gap: ${({ theme }) => u(theme.button.gap)};
 `;

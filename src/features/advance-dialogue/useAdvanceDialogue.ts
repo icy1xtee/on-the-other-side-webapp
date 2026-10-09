@@ -1,20 +1,28 @@
 import { useEffect, useLayoutEffect, useRef, type MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'styled-components';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { useTypewriter } from '@/shared/lib/useTypewriter';
 import { isSystemControl } from './isSystemControl';
 
 /**
- * The single way the story moves on. A click anywhere in the frame, Space or Enter all lead to
+ * The single way the story moves on. A click anywhere on the stage, Space or Enter all lead to
  * one `requestAdvance`: while the line is still typing, show it whole; once it is whole, go to
  * the next one. Clicks and keys aimed at system controls belong to those controls.
  *
- * Must be called from an `observer` component: it reads the current line from the store.
+ * The line comes out translated: the store holds the Russian source, which is also the key of
+ * its translation. Must be called from an `observer` component: it reads the line from the store.
  */
 export function useAdvanceDialogue() {
   const { game, ui } = useStores();
   const { timing } = useTheme();
-  const line = game.line;
+  const { t } = useTranslation('story');
+  const source = game.line;
+  const line = source && {
+    ...source,
+    text: t(source.text),
+    speaker: source.speaker && { ...source.speaker, name: t(source.speaker.name) },
+  };
   const typewriter = useTypewriter(line?.text ?? '', timing.defaultTextCps, line?.key ?? '');
 
   const requestAdvance = () => {
