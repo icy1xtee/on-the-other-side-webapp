@@ -5,7 +5,7 @@
 export const sceneIds = ['intro', 'walk'] as const;
 export const backgroundIds = ['room', 'street'] as const;
 export const characterEmotions = {
-  anna: ['neutral', 'happy', 'sad'],
+  mila: ['neutral', 'happy', 'sad'],
 } as const;
 export const musicIds = ['theme'] as const;
 export const sfxIds = ['door'] as const;

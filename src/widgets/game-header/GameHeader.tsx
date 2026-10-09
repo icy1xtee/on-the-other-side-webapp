@@ -1,15 +1,20 @@
 import styled from 'styled-components';
 import { PillButton } from '@/shared/ui/PillButton';
 
+type GameHeaderProps = {
+  /** Settings arrive in stage 6; until then the button is a stub. */
+  onSettings: () => void;
+};
+
 /** The bar across the top of the game screen: logo and settings. */
-export function GameHeader() {
+export function GameHeader({ onSettings }: GameHeaderProps) {
   return (
     <Header>
       <Logo>
         <LogoMark />
         <LogoText>on the other side</LogoText>
       </Logo>
-      <SettingsButton disabled aria-label="Настройки" title="Настройки — скоро">
+      <SettingsButton aria-label="Настройки" onClick={onSettings}>
         ⚙︎
       </SettingsButton>
     </Header>

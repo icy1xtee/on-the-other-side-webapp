@@ -22,7 +22,7 @@
 | 0 | Инициализация проекта | готов | 1 → этап 2 | [00-setup.md](./00-setup.md) |
 | 1 | Каркас: кадр, тема, экраны | готов | 1 ждёт дизайна | [01-shell.md](./01-shell.md) · [реестр](./task-registry/01-shell/) |
 | 2 | Ядро движка: типы и интерпретатор | готов | 0 | [02-engine-core.md](./02-engine-core.md) · [реестр](./task-registry/02-engine-core/) |
-| 3 | Рендер сцены — играбельный билд | на проверке | 1 (предзагрузка — глазами) | [03-rendering.md](./03-rendering.md) · [реестр](./task-registry/03-rendering/) |
+| 3 | Рендер сцены — играбельный билд | на проверке | 0 (впереди — резиновая вёрстка и локализация) | [03-rendering.md](./03-rendering.md) · [реестр](./task-registry/03-rendering/) |
 | 4 | Выборы, переменные, переходы | не начат | 5 | [04-choices.md](./04-choices.md) |
 | 5 | Save / Load | не начат | 5 | [05-save-load.md](./05-save-load.md) |
 | 6 | Аудио и настройки | не начат | 6 | [06-audio-settings.md](./06-audio-settings.md) |

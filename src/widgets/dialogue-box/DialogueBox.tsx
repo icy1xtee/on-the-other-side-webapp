@@ -8,15 +8,18 @@ type DialogueBoxProps = {
   text: string;
   /** The part revealed so far. */
   visibleText: string;
+  /** A system button was pressed; none of them is wired to a feature yet. */
+  onSystemAction: (action: SystemAction) => void;
 };
 
-// System controls from the design. None works yet: save and load arrive in stage 5; auto,
-// skip and history are beyond 0.1. They are here so the layout is the real one, and clicks on
-// them prove they never advance the dialogue.
+// System controls from the design. Save and load arrive in stage 5; auto, skip and history are
+// beyond 0.1. Until then each one is a stub, and clicks on them never advance the dialogue.
 const SYSTEM_ACTIONS = ['Auto', 'Skip', 'History', 'Save', 'Load', 'Choices'] as const;
 
+export type SystemAction = (typeof SYSTEM_ACTIONS)[number];
+
 /** The design's dialogue panel along the bottom of the frame. */
-export function DialogueBox({ speaker, text, visibleText }: DialogueBoxProps) {
+export function DialogueBox({ speaker, text, visibleText, onSystemAction }: DialogueBoxProps) {
   return (
     <Panel>
       {speaker?.portrait && <Portrait src={speaker.portrait} alt="" draggable={false} />}
@@ -39,7 +42,7 @@ export function DialogueBox({ speaker, text, visibleText }: DialogueBoxProps) {
       </Body>
       <Actions>
         {SYSTEM_ACTIONS.map((action) => (
-          <PillButton key={action} disabled title="Скоро">
+          <PillButton key={action} onClick={() => onSystemAction(action)}>
             {action}
           </PillButton>
         ))}

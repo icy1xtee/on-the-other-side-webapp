@@ -8,8 +8,8 @@ const registry = createSceneRegistry(
   {
     intro: [
       { type: 'scene', background: 'room' },
-      { type: 'show', tag: 'anna', emotion: 'happy', at: 'left' },
-      { type: 'say', speaker: 'anna', text: 'Первая' },
+      { type: 'show', tag: 'mila', emotion: 'happy', at: 'left' },
+      { type: 'say', speaker: 'mila', text: 'Первая' },
       { type: 'say', text: 'Последняя' },
     ],
   },
@@ -17,11 +17,11 @@ const registry = createSceneRegistry(
 );
 
 const presentation: Presentation = {
-  speakers: { anna: { name: 'Анна' } },
+  speakers: { mila: { name: 'Мила' } },
   assets: {
     backgrounds: { room: '/room.webp' },
-    characters: { anna: { happy: '/anna-happy.webp' } },
-    portraits: { anna: '/anna-portrait.webp' },
+    characters: { mila: { happy: '/mila-happy.webp' } },
+    portraits: { mila: '/mila-portrait.webp' },
   },
 };
 
@@ -38,10 +38,10 @@ describe('GameStore', () => {
     store.newGame();
 
     expect(store.background).toBe('/room.webp');
-    expect(store.sprites).toEqual([{ tag: 'anna', at: 'left', src: '/anna-happy.webp' }]);
+    expect(store.sprites).toEqual([{ tag: 'mila', at: 'left', src: '/mila-happy.webp' }]);
     expect(store.line).toEqual({
       key: 'intro:2',
-      speaker: { name: 'Анна', portrait: '/anna-portrait.webp' },
+      speaker: { name: 'Мила', portrait: '/mila-portrait.webp' },
       text: 'Первая',
     });
   });
@@ -84,7 +84,7 @@ describe('GameStore', () => {
     store.advance();
     stop();
 
-    expect(speakers).toEqual([undefined, 'Анна', undefined]);
+    expect(speakers).toEqual([undefined, 'Мила', undefined]);
   });
 });
 

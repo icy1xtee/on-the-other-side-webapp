@@ -5,8 +5,8 @@ import type { Scene } from '../types';
 export const walk: Scene = [
   scene('street'),
   music('theme', { ifChanged: true }),
-  show('anna', 'sad', 'right'),
-  say('anna', 'Здесь всегда так тихо.'),
+  show('mila', 'sad', 'right'),
+  say('mila', 'Здесь всегда так тихо.'),
   set('trust', 1),
   narrate('Конец демо-сцены.'),
 ];

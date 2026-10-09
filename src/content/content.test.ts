@@ -21,10 +21,10 @@ describe('demo content', () => {
     expect(result.interaction).toEqual({ type: 'end' });
     expect(seen.filter((interaction) => interaction.type === 'say')).toHaveLength(7);
     expect(result.state.position.sceneId).toBe('walk');
-    expect(result.state.vars).toEqual({ metAnna: true, trust: 1 });
+    expect(result.state.vars).toEqual({ metMila: true, trust: 1 });
     expect(result.state.stage).toEqual({
       background: 'street',
-      sprites: [{ tag: 'anna', emotion: 'sad', at: 'right' }],
+      sprites: [{ tag: 'mila', emotion: 'sad', at: 'right' }],
     });
   });
 });
@@ -35,20 +35,20 @@ describe('factories', () => {
       text: 'В лес',
       then: [{ type: 'jump', scene: 'walk' }],
     });
-    expect(option('Остаться', [say('anna', 'Ладно.')]).then).toHaveLength(1);
+    expect(option('Остаться', [say('mila', 'Ладно.')]).then).toHaveLength(1);
   });
 
   it('keeps a condition typed with the story vars', () => {
     const trusting = option('Довериться', [], { when: (vars) => vars.trust > 2 });
-    expect(trusting.when?.({ metAnna: true, trust: 3 })).toBe(true);
+    expect(trusting.when?.({ metMila: true, trust: 3 })).toBe(true);
   });
 
   it('rejects typos and mismatches at compile time', () => {
     const wrong = [
       // @ts-expect-error: no such background.
       scene('rooom'),
-      // @ts-expect-error: Anna has no such emotion.
-      show('anna', 'angry'),
+      // @ts-expect-error: Mila has no such emotion.
+      show('mila', 'angry'),
       // @ts-expect-error: no such scene.
       goTo('forest'),
       // @ts-expect-error: trust is a number.
@@ -62,7 +62,7 @@ describe('factories', () => {
   it('builds a choice that mixes leaving and reacting', () => {
     const fork = choice([
       option('Пойти гулять', goTo('walk')),
-      option('Остаться', [say('anna', 'Тогда подождём.')]),
+      option('Остаться', [say('mila', 'Тогда подождём.')]),
     ]);
     expect(fork).toMatchObject({
       type: 'choice',

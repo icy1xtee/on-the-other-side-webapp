@@ -7,6 +7,8 @@ progress summary in [.claude/tasks/](.claude/tasks/). Read the plan before chang
 **Start of any session:** read the current stage's folder in
 [.claude/tasks/task-registry/](.claude/tasks/task-registry/) — `context.md` (full picture,
 agreed decisions) and `progress.md` (branch, step statuses, journal, open questions).
+Consciously postponed compromises live in [.claude/tasks/tech-debt.md](.claude/tasks/tech-debt.md);
+add to it rather than leaving a TODO in code.
 
 ## Commands
 

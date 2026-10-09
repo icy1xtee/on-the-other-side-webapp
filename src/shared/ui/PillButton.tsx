@@ -1,9 +1,23 @@
 import type { ComponentProps } from 'react';
 import styled from 'styled-components';
 
-/** The design's small rounded control button. Defaults to `type="button"`. */
-export function PillButton(props: ComponentProps<'button'>) {
-  return <StyledPillButton type="button" {...props} />;
+/**
+ * The design's small rounded control button. Defaults to `type="button"`.
+ *
+ * A mouse click doesn't move focus onto it: otherwise the next Space would press this button
+ * again instead of advancing the story. Tab still focuses it for keyboard players.
+ */
+export function PillButton({ onMouseDown, ...props }: ComponentProps<'button'>) {
+  return (
+    <StyledPillButton
+      type="button"
+      onMouseDown={(event) => {
+        event.preventDefault();
+        onMouseDown?.(event);
+      }}
+      {...props}
+    />
+  );
 }
 
 const StyledPillButton = styled.button`

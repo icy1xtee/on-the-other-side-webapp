@@ -3,7 +3,7 @@
  * variable existed still loads: the missing variable takes its default.
  */
 export const variableDefaults = {
-  metAnna: false,
+  metMila: false,
   trust: 0,
 };
 
