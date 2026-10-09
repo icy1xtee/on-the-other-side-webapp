@@ -2,7 +2,7 @@
 
 Контекст этапа — [context.md](./context.md).
 
-**Ветка:** `feat/stage-1-shell` (предложена, ждёт создания)
+**Ветка:** `feat/stage-1-shell`
 **Статус этапа:** в работе
 **PR:** — (открывается в конце этапа)
 
@@ -12,7 +12,7 @@
 
 | # | Шаг | Статус | Коммит |
 |---|---|---|---|
-| 1 | Тема и токены + `ThemeProvider`, `App` → `src/app/` | не начат | `feat(app): add theme tokens and ThemeProvider` |
+| 1 | Тема и токены + `ThemeProvider`, `App` → `src/app/` | на проверке | `feat(app): add theme tokens and ThemeProvider` |
 | 2 | Глобальные стили | не начат | `feat(app): add global styles` |
 | 3 | Масштабируемый кадр 16:9 со слоями | не начат | `feat(widgets): add scalable 16:9 stage` |
 | 4 | Сторы и переключение экранов | не начат | `feat(app): add root store and screen switching` |
@@ -39,6 +39,36 @@
 ## Журнал
 
 Записи добавляются в начало.
+
+### 2026-10-09 · шаг 1 — тема и токены · на проверке
+
+**Сделано:**
+
+- `src/app/styles/theme.ts` — объект темы: `stage` (из `shared/config/stage.ts`), `colors`,
+  `typography`, `dialogue`, `choice`, `zIndex`, `timing`. Значения черновые.
+- `src/styled.d.ts` — `DefaultTheme extends AppTheme`, где `AppTheme = typeof theme`.
+- `src/App.tsx` → `src/app/App.tsx`, обёрнут в `ThemeProvider`. Заголовок стал styled-компонентом
+  со шрифтом из темы — это видимое доказательство, что тема доходит до компонентов.
+- `main.tsx` импортирует `@/app/App`.
+
+**Проверено:** `lint`, `typecheck`, `test`, `format:check`, `build` — проходят. Временный файл
+с `theme.colors.nonexistent` и `useTheme().typography.fontSize` дал две ошибки TS2339 —
+типизация работает и в шаблонах styled, и через `useTheme()`. Файл удалён.
+
+**Проверить глазами:** `npm run dev` — заголовок «On the Other Side» набран системным шрифтом
+без засечек, а не Times, как раньше. Больше ничего не меняется: чёрный фон — шаг 2.
+
+**Решения по ходу (мелкие, обратимые):**
+
+- Тип темы выводится из объекта (`typeof theme`), а не описывается отдельным интерфейсом —
+  структура в одном месте, дизайн меняет только значения.
+- Черновая геометрия диалога и выборов — дефолты `gui.rpy` Ren'Py для 1920×1080
+  (`textbox_height 278`, `name_xpos 360`, `dialogue_xpos 402`, `dialogue_ypos 75`,
+  `dialogue_width 1116`, `choice_button_width 1185`, `choice_spacing 33`, размеры текста
+  33 / 45).
+- Размеры — числа в px макета, без единиц: удобнее для арифметики, `px` дописывается в стилях.
+- `defaultTextCps: 40` — черновое значение; настраиваемая скорость появится на этапе 6.
+- `App` остался default-экспортом, как в шаблоне.
 
 ### 2026-10-09 · подготовка этапа
 
