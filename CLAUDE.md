@@ -1,8 +1,12 @@
 # CLAUDE.md
 
 Visual novel as a web app. Vision in [.claude/project-brief.md](.claude/project-brief.md),
-decisions and stages in [.claude/plan-0.1.md](.claude/plan-0.1.md), per-stage tasks and the
-progress log in [.claude/tasks/](.claude/tasks/). Read the plan before changing architecture.
+decisions and stages in [.claude/plan-0.1.md](.claude/plan-0.1.md), per-stage specs and the
+progress summary in [.claude/tasks/](.claude/tasks/). Read the plan before changing architecture.
+
+**Start of any session:** read the current stage's folder in
+[.claude/tasks/task-registry/](.claude/tasks/task-registry/) — `context.md` (full picture,
+agreed decisions) and `progress.md` (branch, step statuses, journal, open questions).
 
 ## Commands
 
@@ -54,11 +58,18 @@ downward-only rule between FSD layers is kept by hand.
 
 - Small atomic steps: one verifiable thing per step, then stop and report what to check.
 - **Pavel commits**, one commit per step — never leave the project broken between steps. Don't
-  commit unless asked; propose a branch name and a commit message instead.
+  commit unless asked; propose a commit message instead.
+- Git: one branch per stage (`feat/stage-N-<name>`), one commit per step inside it, PR into
+  `main` at the end of the stage.
 - Anything that shapes structure or later code is asked as a question **before** implementing.
   Small reversible choices: decide and name them in the report.
-- Open questions in task files are closed as we hit them; write the answer into the task.
-- If reality diverges from the plan, update the plan and log it in
-  [.claude/tasks/progress.md](.claude/tasks/progress.md).
+- After every step update the stage's registry `progress.md` (step status, journal entry);
+  record new decisions in its `context.md`. Open questions are closed as we hit them, with the
+  answer written into the registry.
+- At the end of a stage add a summary entry to
+  [.claude/tasks/progress.md](.claude/tasks/progress.md). If reality diverges from the plan,
+  update the plan too.
+- Design (palette, fonts, menu and dialogue look) comes from Claude Design. Until it arrives,
+  theme tokens hold deliberately rough draft values; design swaps values, not structure.
 - Don't grow the engine ahead of the game: every abstraction in `engine/` must be needed by
   the demo scene now.
