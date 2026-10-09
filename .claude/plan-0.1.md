@@ -117,33 +117,36 @@ recommended to `default` every variable in your game that is susceptible to chan
 ## Структура репозитория
 
 ```
+engine/       движок — отдельно от приложения: types, state, program, interpreter
+              (позже save, audio); свой tsconfig без DOM, публичный API — engine/index.ts
+
 src/
-  app/        точка входа, ThemeProvider, RootStoreProvider, глобальные стили, горячие клавиши
+  main.tsx    точка сборки: реестр сцен из content/ + движок → RootStore
+  app/        App, сторы (RootStore, UiStore, GameStore), ThemeProvider, глобальные стили,
+              горячие клавиши
   pages/      MainMenuPage, GamePage
   widgets/    Stage (композиция кадра), DialogueBox, SettingsOverlay
   features/   advance-dialogue, make-choice, save-game, load-game, change-settings
   entities/   background (ui + карта ассетов), character (ui + карта ассетов), save-slot
-  shared/     ui (Button, Slider), lib (useStageScale, useTypewriter), config, types
-
-  engine/     content-types, interpreter, navigation, save, audio
-  content/    ids, variableDefaults, scenes, демо-сцена, __dev__/ ветвящийся тестовый контент
+  shared/     ui (Button, Slider), lib (useStageFit, useTypewriter, stores), config, types
+  content/    ids, speakers, variableDefaults, фабрики (dsl), scenes, __dev__/ тестовый контент
   assets/     backgrounds/, characters/, music/, sfx/
 ```
 
-**Правила границ** (границы `engine/` проверяет `no-restricted-imports` в oxlint, остальное —
+**Правила границ** (первые три проверяет `no-restricted-imports` в oxlint, остальное —
 руками):
 
-- `engine/` не импортирует ничего из FSD-слоёв и не знает о `content/`. Реестр сцен
-  передаётся в интерпретатор снаружи, при инициализации приложения.
-- `engine/` не содержит React. Реакт-обвязка живёт в `app/providers`.
-- FSD-слои импортируют `engine/` свободно, но только вниз по своим слоям
-  (`pages → widgets → features → entities → shared`).
-- О сюжете знает только `content/`.
+- `engine/` не импортирует ничего из `src/`: ни FSD-слоёв, ни `content/`. Реестр сцен
+  передаётся снаружи, при загрузке приложения (`main.tsx`).
+- `engine/` — чистый TypeScript: без React, без MobX, без DOM (последнее проверяет
+  `tsconfig.engine.json`). MobX-обвязка — `GameStore` в `app/stores/`.
+- `src/` импортирует движок только через публичный API: `from '@engine'`.
+- FSD-слои импортируют только вниз (`app → pages → widgets → features → entities → shared`);
+  сторы слоям ниже `app/` доступны через `AppStores` из `shared/`.
+- О сюжете знает только `content/`; подключает его к движку только точка сборки.
 
 Это то же разделение, что у Ren'Py между execution-слоем и display-слоем: исполнение меняет
 логическое описание кадра, отрисовка отдельно превращает его в пиксели.
-
-`engine/` пока остаётся на верхнем уровне, а не в `shared/`.
 
 ---
 
@@ -153,19 +156,55 @@ src/
 type SpritePosition = 'left' | 'center' | 'right';
 type LocalizedText = string | { $key: string };
 
-type Command =
+// Движок не знает конкретных id: по умолчанию всё — string. content/ сужает параметр
+// под свои реестры, и опечатка в id становится ошибкой компиляции.
+type Ids = { scene: string; background: string; character: string; emotion: string;
+             speaker: string; music: string; sfx: string;
+             vars: Record<string, VarValue> }; // тип переменных целиком — для `when`
+
+type Command<I extends Ids = Ids> =
   // мгновенные
-  | { type: 'scene'; background: BackgroundId }
-  | { type: 'show'; tag: CharacterId; emotion: EmotionId; at?: SpritePosition }
-  | { type: 'hide'; tag: CharacterId }
-  | { type: 'music'; asset: MusicId | null; ifChanged?: boolean }
-  | { type: 'sfx'; asset: SfxId }
-  | { type: 'set'; name: VarName; value: VarValue }
-  | { type: 'jump'; scene: SceneId }
+  | { type: 'scene'; background: I['background'] }
+  | { type: 'show'; tag: I['character']; emotion: I['emotion']; at?: SpritePosition }
+  | { type: 'hide'; tag: I['character'] }
+  | { type: 'music'; asset: I['music'] | null; ifChanged?: boolean }
+  | { type: 'sfx'; asset: I['sfx'] }
+  | { type: 'set'; name: VarName<I>; value: VarValue }
+  | { type: 'jump'; scene: I['scene'] }
   // требуют interaction
-  | { type: 'say'; speaker: SpeakerId; text: LocalizedText }
-  | { type: 'choice'; options: ChoiceOption[] };
+  | { type: 'say'; speaker?: I['speaker']; text: LocalizedText } // без speaker — рассказчик
+  | { type: 'choice'; options: ChoiceOption<I>[] };
+
+type ChoiceOption<I extends Ids = Ids> = {
+  text: LocalizedText;
+  when?(vars: Vars<I>): boolean; // методом, а не свойством: иначе ломается вариантность
+  then: Command<I>[];            // блок; может закончиться jump в другую сцену
+};
 ```
+
+**Ветвление — два механизма в одной модели.** Крупные ветки — отдельные сцены, короткие
+реакции — блоки внутри варианта, после которых выполнение продолжается за развилкой (как
+`menu` в Ren'Py). Переход в другую сцену — это блок из одного `jump`:
+
+```ts
+choice([
+  option('Пойти в лес', goTo('forest')),       // goTo = блок [jump('forest')]
+  option('Остаться', [say('anna', 'Тогда подождём здесь.')]),
+]),
+say('anna', 'Темнеет...'),                     // сюда сходятся блоки-реакции
+```
+
+При регистрации сцена разворачивается из дерева в **плоскую программу** с внутренними
+переходами — как указатели `next` у statement'ов Ren'Py. Поэтому позиция остаётся
+`{ sceneId, step }`, а интерпретатор — простым циклом.
+
+**Сценарий пишется фабриками** из `content/`: `scene('room')`, `show('anna', 'happy', 'left')`,
+`say('anna', '…')`, `narrate('…')`, `goTo('forest')`, `choice([...])`, `option(...)`.
+Фабрика заодно проверяет то, что тип-объединение не выразит: эмоция `happy` есть именно у
+Анны.
+
+**Конец сцены без `jump`** — конец игры и возврат в меню, как в Ren'Py при пустом стеке
+вызовов.
 
 Четыре конвенции, взятые у Ren'Py:
 
@@ -181,10 +220,16 @@ type Command =
 
 Плюс два приёма для автокомплита:
 
-- `BackgroundId`, `CharacterId`, `MusicId` выводятся из реестров ассетов
-  (`keyof typeof backgrounds`) — опечатка в имени файла становится ошибкой компиляции;
+- id фонов, персонажей, музыки выводятся из реестров в `content/` и подставляются в
+  `Command<ContentIds>` — опечатка в имени становится ошибкой компиляции;
 - `LocalizedText` допускает и строку, и ключ; движок достаёт текст через `resolveText()`,
   который в 0.1 просто возвращает строку.
+
+**Движок — чистое ядро.** Функции над plain data: состояние `{ position, vars, stage, audio }`
+на входе и выходе, без MobX и React. `GameStore` в `app/` держит это состояние и вызывает
+движок; тесты движка обходятся без MobX, а сейв — это то же состояние.
+
+**Случайности в сюжете нет** — детерминированный генератор случайных чисел не нужен.
 
 ---
 
@@ -192,15 +237,21 @@ type Command =
 
 | Стор | Что держит | В сейве |
 |---|---|---|
-| `GameStore` | `position`, `vars` | да |
-| `StageStore` | фон, спрайты (тег, эмоция, позиция) | да |
-| `DialogueStore` | текущая реплика, варианты выбора, `isRevealing` | нет — выводится из команды на `position.step` |
+| `GameStore` | состояние движка целиком (`position`, `vars`, `stage`, `audio`) + текущее interaction; вычисляемые `stage` и `line` | да — `state` и есть снапшот |
 | `SettingsStore` | громкости по каналам, скорость текста | да, отдельным ключом |
 | `UiStore` | активный экран, открыт ли оверлей настроек | нет |
 | `AudioService` | howler, текущий трек | нет, не observable |
 
 Три независимых хранилища, как в Ren'Py: сейв (точка в игре), настройки (переживают все
 прохождения), и — позже — `persistent` для прочитанных реплик и достижений.
+
+`StageStore` и `DialogueStore` из первой редакции не понадобились: при чистом ядре это
+вычисляемые поля `GameStore` (решено на этапе 2). Состояние набора текста (`isRevealing`) —
+забота UI на этапе 3.
+
+**Доступ к сторам из слоёв ниже `app/`** — тем же приёмом, что тема: в `shared/` пустой
+интерфейс `AppStores` и хук `useStores()`, `app/` расширяет интерфейс через `declare module`.
+Импортов снизу вверх нет, типы полные.
 
 ---
 
@@ -269,12 +320,14 @@ React 18, это дешевле, чем воевать со стилями.
 
 ### Этап 2. Ядро движка: типы и интерпретатор · [задача](./tasks/02-engine-core.md)
 
-- `engine/content-types`: команды, сцена, `LocalizedText`, `resolveText`.
-- `engine/interpreter`: цикл до команды, требующей interaction; применение мгновенных команд к
-  `StageStore` с автозаменой по тегу; `scene` очищает спрайты; `start()`, `advance()`,
-  `requestAdvance()`.
-- `engine/navigation`: реестр сцен, `jump`.
-- `content/`: реестры id, `variableDefaults`, демо-сцена с текстом-заглушкой.
+- `engine/` (корневая папка, вне `src/`): типы `Command<I>` с дженериком по id, `ChoiceOption`
+  с блоком, `resolveText`; чистые функции над состоянием — мгновенные команды с автозаменой
+  по тегу, `scene` очищает спрайты, эффекты `music` / `sfx`; реестр сцен с плоской программой
+  (включая разворот блоков `choice`) и проверкой целей `jump`; интерпретатор с лимитом шагов,
+  конец сцены = конец игры. Без MobX, React и DOM.
+- `content/`: id, говорящие, `variableDefaults`, фабрики команд, демо-сцена.
+- `shared/`: `AppStores` + `useStores()` по приёму темы; `app/`: `GameStore` держит состояние
+  движка, «Новая игра» запускает демо-сцену.
 - Тесты Vitest: мгновенные команды применяются подряд; на команде с interaction выполнение
   встаёт; `show` с тем же тегом заменяет спрайт, а не добавляет второй; `scene` очищает
   спрайты; `jump` переключает сцену; снапшот состояния сериализуется и восстанавливается
@@ -303,6 +356,8 @@ React 18, это дешевле, чем воевать со стилями.
 
 - `features/make-choice` + рендер вариантов, команда `set`, опциональное условие `when`
   у варианта выбора.
+- Выбор варианта (`choose`) поверх готового с этапа 2 разворота блоков: `goTo` уводит в
+  другую сцену, блок-реакция продолжает выполнение за развилкой; вложенные блоки.
 - Реестр `variableDefaults` подключён: движок стартует с дефолтов, `set` их меняет.
 - Ветвящийся тестовый контент в `content/__dev__/` — в игру не входит, нужен чтобы прогнать
   механику, которой в линейной сцене нет.

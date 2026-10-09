@@ -7,23 +7,39 @@
   },
   "overrides": [
     {
-      "files": ["src/engine/**"],
+      "files": ["engine/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "regex": "^(@/|(\\.\\./)+)content(/|$)",
-                "message": "engine/ must not know about content/: the scene registry is passed in from app/."
+                "regex": "^@/",
+                "message": "engine/ is independent of the app: no imports from src/ (FSD layers, content). Scenes are passed in from outside."
               },
               {
-                "regex": "^(@/|(\\.\\./)+)(app|pages|widgets|features|entities|shared)(/|$)",
-                "message": "engine/ must not import FSD layers: they depend on the engine, not the other way round."
+                "regex": "^(\\.\\./)+src(/|$)",
+                "message": "engine/ is independent of the app: no imports from src/ (FSD layers, content). Scenes are passed in from outside."
               },
               {
-                "regex": "^(react|react-dom|mobx-react-lite|styled-components)(/|$)",
-                "message": "engine/ has no React: the React bindings live in app/providers."
+                "regex": "^(react|react-dom|mobx|mobx-react-lite|styled-components)(/|$)",
+                "message": "engine/ is pure TypeScript: no React, no MobX. The app wraps it in its own stores."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+engine(/|$)",
+                "message": "Import the engine through its public API: `from '@engine'`."
               }
             ]
           }

@@ -1,11 +1,11 @@
 {
+  // The engine is checked on its own, without DOM types: browser APIs can't creep into it.
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.engine.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023"],
     "module": "esnext",
-    "types": ["vite/client"],
-    "allowArbitraryExtensions": true,
+    "types": [],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -14,13 +14,6 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
-
-    /* Path aliases, mirrored in vite.config.ts. The engine is reachable only via its public API. */
-    "paths": {
-      "@/*": ["./src/*"],
-      "@engine": ["./engine/index.ts"]
-    },
 
     /* Linting */
     "strict": true,
@@ -30,5 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["engine"]
 }

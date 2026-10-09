@@ -1,12 +1,12 @@
 import { observer } from 'mobx-react-lite';
 import { ThemeProvider } from 'styled-components';
-import { StoreProvider } from '@/app/providers/StoreProvider';
-import { useStores } from '@/app/providers/useStores';
 import type { RootStore } from '@/app/stores/RootStore';
 import { GlobalStyle } from '@/app/styles/global';
 import { theme } from '@/app/styles/theme';
 import { GamePage } from '@/pages/game/GamePage';
 import { MainMenuPage } from '@/pages/main-menu/MainMenuPage';
+import { StoreProvider } from '@/shared/lib/stores/StoreProvider';
+import { useStores } from '@/shared/lib/stores/useStores';
 
 type AppProps = {
   rootStore: RootStore;
@@ -14,7 +14,7 @@ type AppProps = {
 
 export default function App({ rootStore }: AppProps) {
   return (
-    <StoreProvider store={rootStore}>
+    <StoreProvider stores={rootStore}>
       <ThemeProvider theme={theme}>
         <GlobalStyle />
         <Screens />
@@ -23,13 +23,12 @@ export default function App({ rootStore }: AppProps) {
   );
 }
 
-// Pages get callbacks instead of reading stores: app/ sits above pages/ and wires them up.
 const Screens = observer(function Screens() {
-  const { ui } = useStores();
+  const { ui, newGame } = useStores();
 
   switch (ui.screen) {
     case 'menu':
-      return <MainMenuPage onNewGame={ui.showGame} />;
+      return <MainMenuPage onNewGame={newGame} />;
     case 'game':
       return <GamePage />;
   }

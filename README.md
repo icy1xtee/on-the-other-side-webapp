@@ -37,10 +37,11 @@ npm run dev
 ## Project layout
 
 ```
+engine/      the engine, standalone: pure TypeScript, no React, no DOM, no knowledge of the
+             story — see engine/README.md
 src/
   app/ pages/ widgets/ features/ entities/ shared/   UI, Feature-Sliced Design in spirit
-  engine/    interpreter, navigation, save, audio — no React, no knowledge of the story
-  content/   scenes, ids, variable defaults — the only place that knows the plot
+  content/   scenes, ids, speakers, variable defaults — the only place that knows the plot
   assets/    backgrounds, characters, music, sfx
 ```
 
