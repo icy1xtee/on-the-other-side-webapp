@@ -5,6 +5,7 @@ export { resolveText, type LocalizedText } from './types/text';
 export {
   requiresInteraction,
   type ChoiceOption,
+  type ChoicePrompt,
   type Command,
   type InteractionCommand,
   type SpritePosition,
@@ -25,6 +26,7 @@ export { createSceneRegistry, type SceneRegistry } from './program/sceneRegistry
 
 export {
   advance,
+  choose,
   run,
   startGame,
   STEP_LIMIT,

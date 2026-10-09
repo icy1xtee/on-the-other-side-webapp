@@ -15,7 +15,7 @@ export const ru = {
   'dialogue.action.save': 'Сохранить',
   'dialogue.action.load': 'Загрузить',
   'dialogue.action.choices': 'Выборы',
-  'dialogue.locked': 'Пока недоступно',
+  'dialogue.locked': '{{action}} — пока недоступно',
   'notice.comingSoon': '{{feature}} — скоро',
   'stage.rotateTitle': 'Поверните устройство',
   'stage.rotateHint': 'Игра рассчитана на альбомную ориентацию',

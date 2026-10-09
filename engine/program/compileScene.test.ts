@@ -29,6 +29,7 @@ describe('compileScene', () => {
           { text: 'Резко', when: undefined, target: 1 },
           { text: 'Промолчать', when: undefined, target: 3 },
         ],
+        next: 6,
       },
       say('Ну и ладно.'),
       { type: 'goto', step: 6 },
@@ -57,6 +58,7 @@ describe('compileScene', () => {
           { text: 'В лес', when: undefined, target: 1 },
           { text: 'Остаться', when: undefined, target: 2 },
         ],
+        next: 3,
       },
       { type: 'jump', scene: 'forest' },
       { type: 'goto', step: 3 },
@@ -93,6 +95,7 @@ describe('compileScene', () => {
           { text: 'Спросить', when: undefined, target: 1 },
           { text: 'Уйти', when: undefined, target: 6 },
         ],
+        next: 8,
       },
       {
         type: 'choice',
@@ -100,6 +103,7 @@ describe('compileScene', () => {
           { text: 'Вежливо', when: undefined, target: 2 },
           { text: 'В лоб', when: undefined, target: 4 },
         ],
+        next: 5,
       },
       say('Спасибо.'),
       { type: 'goto', step: 5 }, // inner block → after the inner choice…
@@ -117,5 +121,13 @@ describe('compileScene', () => {
       { type: 'choice', options: [{ text: 'Довериться', when, then: [] }] },
     ]);
     expect(choice).toMatchObject({ type: 'choice', options: [{ when }] });
+  });
+
+  it('keeps the prompt the choice asks with', () => {
+    const prompt = { speaker: 'mila', text: 'Куда пойдём?' };
+    const [choice] = compileScene([
+      { type: 'choice', prompt, options: [{ text: 'В парк', then: [] }] },
+    ]);
+    expect(choice).toMatchObject({ type: 'choice', prompt });
   });
 });

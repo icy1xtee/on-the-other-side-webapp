@@ -13,7 +13,7 @@ export const en = {
   'dialogue.action.save': 'Save',
   'dialogue.action.load': 'Load',
   'dialogue.action.choices': 'Choices',
-  'dialogue.locked': 'Not available yet',
+  'dialogue.locked': '{{action}} — not available yet',
   'notice.comingSoon': '{{feature}} — coming soon',
   'stage.rotateTitle': 'Rotate your device',
   'stage.rotateHint': 'The game is made for landscape',

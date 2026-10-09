@@ -16,5 +16,7 @@ export type ContentIds = {
 };
 
 export type Cmd = Command<ContentIds>;
+/** A line of the story, spoken or narrated: what `say` and `narrate` build. */
+export type Line = Extract<Cmd, { type: 'say' }>;
 export type Option = ChoiceOption<ContentIds>;
 export type Scene = readonly Cmd[];

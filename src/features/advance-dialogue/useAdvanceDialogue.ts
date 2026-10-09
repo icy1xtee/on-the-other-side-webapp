@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type MouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'styled-components';
 import { useStores } from '@/shared/lib/stores/useStores';
@@ -7,8 +7,10 @@ import { isSystemControl } from './isSystemControl';
 
 /**
  * The single way the story moves on. A click anywhere on the stage, Space or Enter all lead to
- * one `requestAdvance`: while the line is still typing, show it whole; once it is whole, go to
- * the next one. Clicks and keys aimed at system controls belong to those controls.
+ * one `requestAdvance`: while the line is still typing, show it whole; once it is whole, go on.
+ * At a choice, going on means the player has read the prompt: only then do the options come out
+ * (`choiceOptions`), so a prompt is never cut short. Clicks and keys aimed at system controls
+ * belong to those controls.
  *
  * The line comes out translated: the store holds the Russian source, which is also the key of
  * its translation. Must be called from an `observer` component: it reads the line from the store.
@@ -25,9 +27,17 @@ export function useAdvanceDialogue() {
   };
   const typewriter = useTypewriter(line?.text ?? '', timing.defaultTextCps, line?.key ?? '');
 
+  // The key of the prompt the player has clicked past. A choice without a prompt has nothing to
+  // read: its options are out at once.
+  const [readPrompt, setReadPrompt] = useState<string | null>(null);
+  const options = game.choiceOptions;
+  const promptPending = options !== null && source !== null && readPrompt !== source.key;
+
   const requestAdvance = () => {
     if (typewriter.isRevealing) {
       typewriter.finish();
+    } else if (promptPending) {
+      setReadPrompt(source.key);
     } else {
       game.advance();
     }
@@ -71,5 +81,11 @@ export function useAdvanceDialogue() {
     }
   };
 
-  return { line, visibleText: typewriter.visibleText, onStageClick };
+  return {
+    line,
+    visibleText: typewriter.visibleText,
+    /** The options to pick from, once the prompt has been read; null otherwise. */
+    choiceOptions: promptPending ? null : options,
+    onStageClick,
+  };
 }

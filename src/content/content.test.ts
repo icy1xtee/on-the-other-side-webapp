@@ -1,6 +1,6 @@
 import { advance, createSceneRegistry, startGame, type Interaction } from '@engine';
 import { describe, expect, it } from 'vitest';
-import { choice, goTo, option, say, scene, set, show } from './dsl';
+import { choice, goTo, narrate, option, say, scene, set, show } from './dsl';
 import { scenes, startScene, variableDefaults } from './index';
 
 describe('demo content', () => {
@@ -55,8 +55,23 @@ describe('factories', () => {
       set('trust', true),
       // @ts-expect-error: no such speaker.
       say('bob', 'Привет'),
+      // @ts-expect-error: a choice asks with a line, not with any command.
+      choice(scene('room'), []),
     ];
-    expect(wrong).toHaveLength(5);
+    expect(wrong).toHaveLength(6);
+  });
+
+  it('builds a choice that asks with a line, spoken or narrated', () => {
+    expect(choice(say('mila', 'Куда пойдём?'), [option('Гулять', goTo('walk'))])).toMatchObject({
+      type: 'choice',
+      prompt: { speaker: 'mila', text: 'Куда пойдём?' },
+      options: [{ text: 'Гулять' }],
+    });
+    expect(choice(narrate('Что делать?'), [])).toEqual({
+      type: 'choice',
+      prompt: { text: 'Что делать?' },
+      options: [],
+    });
   });
 
   it('builds a choice that mixes leaving and reacting', () => {

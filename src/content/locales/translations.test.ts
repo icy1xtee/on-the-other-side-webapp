@@ -19,13 +19,14 @@ describe('English story translations', () => {
 });
 
 describe('collectStoryText', () => {
-  it('finds lines inside choice blocks, at any depth, and option texts', () => {
+  it('finds lines inside choice blocks, at any depth, prompts and option texts', () => {
     const texts = collectStoryText(
       {
         intro: [
           { type: 'say', text: 'Первая' },
           {
             type: 'choice',
+            prompt: { text: 'Что делать?' },
             options: [
               {
                 text: 'Спросить',
@@ -43,6 +44,13 @@ describe('collectStoryText', () => {
       { mila: { name: 'Мила' } },
     );
 
-    expect([...texts].sort()).toEqual(['Вежливо', 'Мила', 'Первая', 'Спасибо.', 'Спросить']);
+    expect([...texts].sort()).toEqual([
+      'Вежливо',
+      'Мила',
+      'Первая',
+      'Спасибо.',
+      'Спросить',
+      'Что делать?',
+    ]);
   });
 });

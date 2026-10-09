@@ -40,8 +40,9 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 - Icons: **lucide-react**, named imports only (`import { Cog } from 'lucide-react'`) so the
   bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: inside `PillButton`
   an icon is sized in `em` from the button font (so it scales with the UI) and drawn at
-  `theme.icons.strokeWidth`. Icons are decorative by default (`aria-hidden`); an icon-only
-  button carries the `aria-label`.
+  `theme.icons.strokeWidth`. Icons are decorative by default (`aria-hidden`). An icon-only
+  button is `shared/ui/IconButton`: its `label` is both the `aria-label` and the hover tooltip
+  (`shared/ui/Tooltip`, pure CSS) — no `title` attributes.
 - Fonts: Geist / Geist Mono from `@fontsource/geist` and `@fontsource/geist-mono` (the Google
   Fonts builds, **with Cyrillic** — `@fontsource/geist-sans` is Latin-only). Import the
   per-weight CSS (`400.css`); the per-subset files lack `unicode-range` and can't be combined.
@@ -79,9 +80,14 @@ src/app/stores  RootStore, UiStore, GameStore (MobX wrapper around the engine; r
               into image URLs and names via `presentation`, so UI never sees content ids)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
 src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
-              controls), Space/Enter; typewriter state; Esc → menu
+              controls), Space/Enter; typewriter state; at a choice, the prompt is read before
+              the options come out; Esc → menu
+src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
+              dialogue panel (widgets/dialogue-box renders it in place of the caret)
 src/content   the story: ids, speakers, variables, assets (files behind ids), factories
               (dsl.ts), scenes
+src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
+              dev server; `?dev=<scene>` starts from any scene. Left out of production builds
 src/assets    art files (WebP / SVG)
 ```
 
@@ -90,7 +96,8 @@ React or MobX; `src/` can't import the engine except via `@engine`. The downward
 between FSD layers is kept by hand.
 
 Scenes are written with the factories from `src/content/dsl.ts` (`scene`, `show`, `say`,
-`narrate`, `goTo`, `choice`, `option`, …), never as raw command objects.
+`narrate`, `goTo`, `choice`, `option`, …), never as raw command objects. A choice may ask with a
+line that stays on screen while the player chooses: `choice(say('mila', 'Куда пойдём?'), [...])`.
 
 ## Conventions
 

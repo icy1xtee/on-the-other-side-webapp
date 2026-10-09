@@ -1,5 +1,6 @@
 import {
   advance,
+  choose,
   resolveText,
   startGame,
   type GameState,
@@ -28,9 +29,18 @@ export type SpriteView = {
 };
 
 export type LineView = {
-  /** Changes with every line, even when two lines read the same: restarts the typewriter. */
+  /**
+   * Changes with every line, even when two lines read the same or the story comes back to the
+   * same step: restarts the typewriter and the reading of a choice's prompt.
+   */
   key: string;
   speaker: { name: string; portrait: string | undefined } | null;
+  text: string;
+};
+
+export type OptionView = {
+  /** The option's place among all the choice's options, hidden ones included: what `choose` takes. */
+  index: number;
   text: string;
 };
 
@@ -51,6 +61,8 @@ export type GameStoreOptions = {
 export class GameStore {
   state: GameState | null = null;
   interaction: Interaction | null = null;
+  /** Counts what the player has been shown, so a key changes even on coming back to a step. */
+  private turn = 0;
   private readonly options: GameStoreOptions;
 
   constructor(options: GameStoreOptions) {
@@ -78,21 +90,37 @@ export class GameStore {
     }));
   }
 
-  /** The current line, if the player is reading one. */
+  /** The line on screen: the one the player is reading, or the prompt of the current choice. */
   get line(): LineView | null {
-    if (!this.state || this.interaction?.type !== 'say') {
+    const current = this.interaction;
+    const shown =
+      current?.type === 'say' ? current : current?.type === 'choice' ? current.prompt : undefined;
+    if (!this.state || !shown) {
       return null;
     }
     const { speakers, assets } = this.options.presentation;
-    const { speaker, text } = this.interaction;
+    const { speaker, text } = shown;
     const { sceneId, step } = this.state.position;
     return {
-      key: `${sceneId}:${step}`,
+      key: `${sceneId}:${step}:${this.turn}`,
       speaker: speaker
         ? { name: speakers[speaker]?.name ?? speaker, portrait: assets.portraits[speaker] }
         : null,
       text: resolveText(text),
     };
+  }
+
+  /**
+   * The options of the current choice the player may pick, or null when there is no choice.
+   * Options ruled out by their condition are left out — hidden, as in Ren'Py.
+   */
+  get choiceOptions(): OptionView[] | null {
+    if (this.interaction?.type !== 'choice') {
+      return null;
+    }
+    return this.interaction.options.flatMap((option, index) =>
+      option.available ? [{ index, text: resolveText(option.text) }] : [],
+    );
   }
 
   newGame() {
@@ -107,7 +135,16 @@ export class GameStore {
     this.apply(advance(this.state, this.options.registry));
   }
 
+  /** The player picked an option, by its `OptionView.index`. Ignored when there is no choice. */
+  choose(index: number) {
+    if (!this.state || this.interaction?.type !== 'choice') {
+      return;
+    }
+    this.apply(choose(this.state, this.options.registry, index));
+  }
+
   private apply(result: RunResult) {
+    this.turn += 1;
     this.state = result.state;
     this.interaction = result.interaction;
     // result.effects (music, sfx) are dropped until the audio layer arrives in stage 6.

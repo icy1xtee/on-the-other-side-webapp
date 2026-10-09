@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createSceneRegistry } from '../program/sceneRegistry';
 import type { GameState } from '../state/state';
 import type { Command } from '../types/command';
-import { advance, run, startGame, STEP_LIMIT } from './interpreter';
+import { advance, choose, run, startGame, STEP_LIMIT } from './interpreter';
 
 const defaults = { metAnna: false, trust: 0 };
 const say = (text: string, speaker?: string): Command => ({ type: 'say', speaker, text });
@@ -75,6 +75,162 @@ describe('startGame and run', () => {
         { text: 'Уйти', available: true },
       ],
     });
+  });
+
+  it("skips a choice whose every option is ruled out, as Ren'Py skips such a menu", () => {
+    const registry = createSceneRegistry(
+      {
+        intro: [
+          {
+            type: 'choice',
+            prompt: { text: 'Этого не видно' },
+            options: [{ text: 'Довериться', when: (vars) => vars.trust === 3, then: [say('Нет')] }],
+          },
+          say('За развилкой'),
+        ],
+      },
+      'intro',
+    );
+
+    expect(startGame(registry, defaults).interaction).toEqual({
+      type: 'say',
+      text: 'За развилкой',
+    });
+  });
+});
+
+describe('choose', () => {
+  // A fork with a reaction, a nested choice and a way out into another scene.
+  const registry = createSceneRegistry(
+    {
+      room: [
+        { type: 'scene', background: 'room' },
+        { type: 'show', tag: 'anna', emotion: 'happy', at: 'left' },
+        {
+          type: 'choice',
+          prompt: { speaker: 'anna', text: 'Как ты?' },
+          options: [
+            {
+              text: 'Отлично',
+              then: [{ type: 'set', name: 'trust', value: 1 }, say('Рада слышать.', 'anna')],
+            },
+            {
+              text: 'Так себе',
+              then: [
+                {
+                  type: 'choice',
+                  options: [
+                    { text: 'Голова болит', then: [say('Кофе?', 'anna')] },
+                    { text: 'Промолчать', then: [] },
+                  ],
+                },
+              ],
+            },
+            {
+              text: 'Уйти',
+              then: [
+                { type: 'set', name: 'metAnna', value: true },
+                { type: 'jump', scene: 'street' },
+              ],
+            },
+          ],
+        },
+        say('За развилкой.'),
+      ],
+      street: [
+        {
+          type: 'choice',
+          options: [
+            { text: 'Довериться', when: (vars) => vars.trust === 1, then: [] },
+            { text: 'Промолчать', then: [] },
+          ],
+        },
+      ],
+    },
+    'room',
+  );
+
+  it('stops on the choice together with its prompt', () => {
+    expect(startGame(registry, defaults).interaction).toEqual({
+      type: 'choice',
+      prompt: { speaker: 'anna', text: 'Как ты?' },
+      options: [
+        { text: 'Отлично', available: true },
+        { text: 'Так себе', available: true },
+        { text: 'Уйти', available: true },
+      ],
+    });
+  });
+
+  it('plays a reaction block, then continues after the choice', () => {
+    const reaction = choose(startGame(registry, defaults).state, registry, 0);
+    expect(reaction.interaction).toEqual({ type: 'say', speaker: 'anna', text: 'Рада слышать.' });
+    expect(reaction.state.vars.trust).toBe(1);
+
+    expect(advance(reaction.state, registry).interaction).toEqual({
+      type: 'say',
+      text: 'За развилкой.',
+    });
+  });
+
+  it('plays a nested choice, whose block also comes back after the outer choice', () => {
+    const nested = choose(startGame(registry, defaults).state, registry, 1);
+    expect(nested.interaction).toEqual({
+      type: 'choice',
+      options: [
+        { text: 'Голова болит', available: true },
+        { text: 'Промолчать', available: true },
+      ],
+    });
+
+    expect(choose(nested.state, registry, 1).interaction).toEqual({
+      type: 'say',
+      text: 'За развилкой.',
+    });
+  });
+
+  it('leaves for another scene with the vars set on the way and the stage untouched', () => {
+    const left = choose(startGame(registry, defaults).state, registry, 2);
+
+    expect(left.state.position).toEqual({ sceneId: 'street', step: 0 });
+    expect(left.state.vars).toEqual({ metAnna: true, trust: 0 });
+    // Clearing the stage is the next scene's own `scene` command, as in Ren'Py.
+    expect(left.state.stage).toEqual({
+      background: 'room',
+      sprites: [{ tag: 'anna', emotion: 'happy', at: 'left' }],
+    });
+  });
+
+  it('lets a variable decide what the next scene offers', () => {
+    const start = startGame(registry, defaults).state;
+    const distrustful = choose(start, registry, 2);
+    const trusting = choose({ ...start, vars: { ...start.vars, trust: 1 } }, registry, 2);
+
+    expect(distrustful.interaction).toMatchObject({
+      options: [{ text: 'Довериться', available: false }, { available: true }],
+    });
+    expect(trusting.interaction).toMatchObject({
+      options: [{ text: 'Довериться', available: true }, { available: true }],
+    });
+  });
+
+  it('refuses an option hidden by its condition', () => {
+    const { state } = choose(startGame(registry, defaults).state, registry, 2);
+    expect(() => choose(state, registry, 0)).toThrow(
+      'Scene "street", step 0: option 0 is not available',
+    );
+  });
+
+  it('refuses an option that does not exist', () => {
+    const { state } = startGame(registry, defaults);
+    expect(() => choose(state, registry, 3)).toThrow(
+      'Scene "room", step 2: the choice has no option 3',
+    );
+  });
+
+  it('refuses to choose on a line', () => {
+    const { state } = choose(startGame(registry, defaults).state, registry, 0);
+    expect(() => choose(state, registry, 0)).toThrow('choose() needs a choice at scene "room"');
   });
 });
 
