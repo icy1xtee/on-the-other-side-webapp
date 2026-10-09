@@ -1,46 +1,36 @@
-import styled, { ThemeProvider } from 'styled-components';
+import { observer } from 'mobx-react-lite';
+import { ThemeProvider } from 'styled-components';
+import { StoreProvider } from '@/app/providers/StoreProvider';
+import { useStores } from '@/app/providers/useStores';
+import type { RootStore } from '@/app/stores/RootStore';
 import { GlobalStyle } from '@/app/styles/global';
 import { theme } from '@/app/styles/theme';
-import { Stage } from '@/widgets/stage/Stage';
+import { GamePage } from '@/pages/game/GamePage';
+import { MainMenuPage } from '@/pages/main-menu/MainMenuPage';
 
-export default function App() {
+type AppProps = {
+  rootStore: RootStore;
+};
+
+export default function App({ rootStore }: AppProps) {
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyle />
-      <Stage
-        ui={
-          <StageDebug>
-            <DebugTitle>1920 × 1080</DebugTitle>
-            <DebugParagraph>
-              Съешь же ещё этих мягких французских булок, да выпей чаю. В чащах юга жил бы цитрус?
-              Да, но фальшивый экземпляр! Эй, жлоб, где туз? Прячь юных съёмщиц в шкаф.
-            </DebugParagraph>
-          </StageDebug>
-        }
-      />
-    </ThemeProvider>
+    <StoreProvider store={rootStore}>
+      <ThemeProvider theme={theme}>
+        <GlobalStyle />
+        <Screens />
+      </ThemeProvider>
+    </StoreProvider>
   );
 }
 
-// Temporary, until step 4 brings the real screens: dashed edges show the frame bounds, and a
-// paragraph of Russian text at dialogue size shows how sharp text stays at fractional scales.
-const StageDebug = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 48px;
-  border: 4px dashed ${({ theme }) => theme.colors.accent};
-`;
+// Pages get callbacks instead of reading stores: app/ sits above pages/ and wires them up.
+const Screens = observer(function Screens() {
+  const { ui } = useStores();
 
-const DebugTitle = styled.p`
-  color: ${({ theme }) => theme.colors.speakerName};
-  font-size: ${({ theme }) => theme.typography.speakerNameSize}px;
-`;
-
-const DebugParagraph = styled.p`
-  width: ${({ theme }) => theme.dialogue.textWidth}px;
-  font-size: ${({ theme }) => theme.typography.dialogueSize}px;
-`;
+  switch (ui.screen) {
+    case 'menu':
+      return <MainMenuPage onNewGame={ui.showGame} />;
+    case 'game':
+      return <GamePage />;
+  }
+});

@@ -26,6 +26,7 @@ export const theme = {
     dialogueSize: 33,
     speakerNameSize: 45,
     interfaceSize: 33,
+    titleSize: 96,
     lineHeight: 1.4,
   },
   dialogue: {

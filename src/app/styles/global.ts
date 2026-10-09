@@ -36,4 +36,11 @@ export const GlobalStyle = createGlobalStyle`
     font: inherit;
     color: inherit;
   }
+
+  /* Game UI styles its own buttons; the browser's light background would hide inherited text. */
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
 `;

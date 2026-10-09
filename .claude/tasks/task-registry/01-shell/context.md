@@ -70,6 +70,9 @@
 | Минимальное окно | 2026-10-09 | Заглушка «Окно слишком маленькое» при `scale < 0.5` (меньше 960×540); порог — `MIN_STAGE_SCALE` |
 | Масштабирование кадра | 2026-10-09 | `transform-origin: 0 0`, `translate(offset) scale(k)` инлайн-стилем; смещение округляется до физического пикселя; **без `will-change`** |
 | Слои кадра | 2026-10-09 | Слоты-пропсы `Stage`; слои `pointer-events: none`, их дети — `auto` |
+| Меню в кадре | 2026-10-09 | Главное меню рисуется **внутри** `Stage`, как `main_menu` в Ren'Py: одна система координат для всего UI, заглушка покрывает и меню |
+| Сторы и слои FSD | 2026-10-09 | `useStores()` живёт в `app/` и используется только там; страницы получают колбэки пропсами. Доступ к сторам для `features/` — открытый вопрос к этапу 3 |
+| `isSettingsOpen` | 2026-10-09 | Не добавлен на этапе 1 — появится на этапе 6 вместе с оверлеем настроек |
 
 ## Что уже есть в коде
 
@@ -83,16 +86,22 @@
 - `src/styled.d.ts` — расширение `DefaultTheme` (шаг 1).
 - `src/app/styles/global.ts` — `GlobalStyle`: reset, letterbox-фон, `user-select: none`
   на `body` (шаг 2).
-- `src/app/App.tsx` — `ThemeProvider` + `GlobalStyle` + `Stage` с временной отладочной
-  разметкой (пунктир по краям, абзац текста); на шаге 4 сменится переключением экранов.
-- `src/main.tsx` — точка входа со `StrictMode`, остаётся в `src/` (на неё ссылается
-  `index.html`).
+- `src/app/stores/` — `RootStore` (держит `ui`), `UiStore` (`screen`, `showGame`, `showMenu`)
+  (шаг 4).
+- `src/app/providers/` — `storeContext.ts`, `StoreProvider.tsx`, `useStores.ts` (шаг 4).
+- `src/app/App.tsx` — `StoreProvider` → `ThemeProvider` → `GlobalStyle` → `Screens`
+  (`observer`, переключает страницы по `ui.screen`) (шаг 4).
+- `src/pages/main-menu/MainMenuPage.tsx` — меню в кадре: название + «Новая игра» (шаг 4).
+- `src/pages/game/GamePage.tsx` — пустой `Stage` (шаг 4).
+- `src/main.tsx` — точка входа со `StrictMode`, создаёт `RootStore` один раз; остаётся в
+  `src/` (на неё ссылается `index.html`).
 
 ## Файлы, которые появятся
 
 ```
 src/app/            App.tsx, styles/theme.ts, styles/global.ts,
-                    providers/StoreProvider.tsx, stores/RootStore.ts, stores/UiStore.ts
+                    providers/{storeContext.ts, StoreProvider.tsx, useStores.ts},
+                    stores/RootStore.ts, stores/UiStore.ts
 src/pages/          main-menu/MainMenuPage.tsx, game/GamePage.tsx
 src/widgets/        stage/Stage.tsx            (layers.ts не понадобился — порядок слоёв в теме)
 src/shared/lib/     useStageFit.ts             (в спецификации — useStageScale)
