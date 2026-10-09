@@ -29,20 +29,31 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
   (`oxc.plugins`), not from `babel-plugin-styled-components`.
 - TypeScript 6: `strict`, `noUncheckedIndexedAccess`. No `baseUrl` (deprecated in TS 6).
 - Lint is **oxlint** (`.oxlintrc.json`), not ESLint.
-- `@/*` → `src/*`. Defined in two places that must stay in sync: `tsconfig.app.json` `paths`
-  and `vite.config.ts` `resolve.alias`. Vitest reads the alias from the Vite config.
+- Aliases: `@/*` → `src/*`, `@engine` → `engine/index.ts` (exact match, public API only).
+  Defined in two places that must stay in sync: `tsconfig.app.json` `paths` and
+  `vite.config.ts` `resolve.alias`. Vitest reads them from the Vite config.
+- Three TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
+  (engine, **no DOM**), `tsconfig.node.json` (vite config).
 - `zod` arrives at stage 5, `howler` at stage 6 — don't add them earlier.
 
-## Layer boundaries
+## Layout and boundaries
 
 ```
+engine/       the engine, standalone: pure TS over plain data — no React, MobX, DOM or src/
+              imports. Read engine/README.md before touching it.
+src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/engine    no React, no FSD layers, no content/ — scene registry is injected from app/
-src/content   the only place that knows the story
+src/app/stores  RootStore, UiStore, GameStore (MobX wrapper around the engine)
+src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
+src/content   the story: ids, speakers, variables, factories (dsl.ts), scenes
 ```
 
-`engine/` boundaries are enforced by `no-restricted-imports` in `.oxlintrc.json`. The
-downward-only rule between FSD layers is kept by hand.
+Enforced by `no-restricted-imports` in `.oxlintrc.json`: `engine/` can't import `src/`,
+React or MobX; `src/` can't import the engine except via `@engine`. The downward-only rule
+between FSD layers is kept by hand.
+
+Scenes are written with the factories from `src/content/dsl.ts` (`scene`, `show`, `say`,
+`narrate`, `goTo`, `choice`, `option`, …), never as raw command objects.
 
 ## Conventions
 
@@ -50,7 +61,11 @@ downward-only rule between FSD layers is kept by hand.
   docs under `.claude/`.
 - Prettier: `printWidth: 100`, single quotes, semicolons, trailing commas, `arrowParens: always`.
   `.claude/` is excluded from formatting on purpose.
-- Tests: Vitest, `src/**/*.test.ts`, pure logic only (engine, lib helpers). UI is not tested.
+- Tests: Vitest, next to the code (`engine/**/*.test.ts`, `src/**/*.test.ts`), pure logic
+  only (engine, content, stores, lib helpers). UI is not tested. Compile-time guarantees are
+  tested with `@ts-expect-error`.
+- When something in the engine is ambiguous, follow Ren'Py
+  ([.claude/engine-research.md](.claude/engine-research.md)).
 - Commits follow **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `test:`,
   `refactor:`, `build:`).
 

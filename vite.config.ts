@@ -8,9 +8,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     // Mirrors `paths` in tsconfig.app.json; Vitest picks it up from here too.
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+    // `@engine` is an exact match: the app sees only the engine's public API.
+    alias: [
+      {
+        find: /^@engine$/,
+        replacement: fileURLToPath(new URL('./engine/index.ts', import.meta.url)),
+      },
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+    ],
   },
   oxc: {
     // Built-in Oxc replacement for babel-plugin-styled-components:
@@ -23,7 +28,7 @@ export default defineConfig({
     },
   },
   test: {
-    // Only pure logic is tested (engine, lib helpers); UI and JSX are not.
-    include: ['src/**/*.test.ts'],
+    // Only pure logic is tested (engine, content, stores, lib helpers); UI and JSX are not.
+    include: ['engine/**/*.test.ts', 'src/**/*.test.ts'],
   },
 });
