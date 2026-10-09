@@ -4,5 +4,31 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/engine/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(@/|(\\.\\./)+)content(/|$)",
+                "message": "engine/ must not know about content/: the scene registry is passed in from app/."
+              },
+              {
+                "regex": "^(@/|(\\.\\./)+)(app|pages|widgets|features|entities|shared)(/|$)",
+                "message": "engine/ must not import FSD layers: they depend on the engine, not the other way round."
+              },
+              {
+                "regex": "^(react|react-dom|mobx-react-lite|styled-components)(/|$)",
+                "message": "engine/ has no React: the React bindings live in app/providers."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
