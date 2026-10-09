@@ -42,7 +42,7 @@ Rendering (initially):
 
 Tooling:
 
-- ESLint
+- oxlint
 - Prettier
 
 Content:

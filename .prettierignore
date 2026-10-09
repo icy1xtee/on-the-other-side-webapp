@@ -1,0 +1,5 @@
+dist
+package-lock.json
+
+# Planning notes are hand-wrapped; formatting them would rewrite every table and emphasis.
+.claude
