@@ -153,19 +153,54 @@ src/
 type SpritePosition = 'left' | 'center' | 'right';
 type LocalizedText = string | { $key: string };
 
-type Command =
+// Движок не знает конкретных id: по умолчанию всё — string. content/ сужает параметр
+// под свои реестры, и опечатка в id становится ошибкой компиляции.
+type Ids = { scene: string; background: string; character: string; emotion: string;
+             speaker: string; music: string; sfx: string; variable: string };
+
+type Command<I extends Ids = Ids> =
   // мгновенные
-  | { type: 'scene'; background: BackgroundId }
-  | { type: 'show'; tag: CharacterId; emotion: EmotionId; at?: SpritePosition }
-  | { type: 'hide'; tag: CharacterId }
-  | { type: 'music'; asset: MusicId | null; ifChanged?: boolean }
-  | { type: 'sfx'; asset: SfxId }
-  | { type: 'set'; name: VarName; value: VarValue }
-  | { type: 'jump'; scene: SceneId }
+  | { type: 'scene'; background: I['background'] }
+  | { type: 'show'; tag: I['character']; emotion: I['emotion']; at?: SpritePosition }
+  | { type: 'hide'; tag: I['character'] }
+  | { type: 'music'; asset: I['music'] | null; ifChanged?: boolean }
+  | { type: 'sfx'; asset: I['sfx'] }
+  | { type: 'set'; name: I['variable']; value: VarValue }
+  | { type: 'jump'; scene: I['scene'] }
   // требуют interaction
-  | { type: 'say'; speaker: SpeakerId; text: LocalizedText }
-  | { type: 'choice'; options: ChoiceOption[] };
+  | { type: 'say'; speaker?: I['speaker']; text: LocalizedText } // без speaker — рассказчик
+  | { type: 'choice'; options: ChoiceOption<I>[] };
+
+type ChoiceOption<I extends Ids = Ids> = {
+  text: LocalizedText;
+  when?(vars: Vars<I>): boolean; // методом, а не свойством: иначе ломается вариантность
+  then: Command<I>[];            // блок; может закончиться jump в другую сцену
+};
 ```
+
+**Ветвление — два механизма в одной модели.** Крупные ветки — отдельные сцены, короткие
+реакции — блоки внутри варианта, после которых выполнение продолжается за развилкой (как
+`menu` в Ren'Py). Переход в другую сцену — это блок из одного `jump`:
+
+```ts
+choice([
+  option('Пойти в лес', goTo('forest')),       // goTo = блок [jump('forest')]
+  option('Остаться', [say('anna', 'Тогда подождём здесь.')]),
+]),
+say('anna', 'Темнеет...'),                     // сюда сходятся блоки-реакции
+```
+
+При регистрации сцена разворачивается из дерева в **плоскую программу** с внутренними
+переходами — как указатели `next` у statement'ов Ren'Py. Поэтому позиция остаётся
+`{ sceneId, step }`, а интерпретатор — простым циклом.
+
+**Сценарий пишется фабриками** из `content/`: `scene('room')`, `show('anna', 'happy', 'left')`,
+`say('anna', '…')`, `narrate('…')`, `goTo('forest')`, `choice([...])`, `option(...)`.
+Фабрика заодно проверяет то, что тип-объединение не выразит: эмоция `happy` есть именно у
+Анны.
+
+**Конец сцены без `jump`** — конец игры и возврат в меню, как в Ren'Py при пустом стеке
+вызовов.
 
 Четыре конвенции, взятые у Ren'Py:
 
@@ -181,10 +216,16 @@ type Command =
 
 Плюс два приёма для автокомплита:
 
-- `BackgroundId`, `CharacterId`, `MusicId` выводятся из реестров ассетов
-  (`keyof typeof backgrounds`) — опечатка в имени файла становится ошибкой компиляции;
+- id фонов, персонажей, музыки выводятся из реестров в `content/` и подставляются в
+  `Command<ContentIds>` — опечатка в имени становится ошибкой компиляции;
 - `LocalizedText` допускает и строку, и ключ; движок достаёт текст через `resolveText()`,
   который в 0.1 просто возвращает строку.
+
+**Движок — чистое ядро.** Функции над plain data: состояние `{ position, vars, stage, audio }`
+на входе и выходе, без MobX и React. `GameStore` в `app/` держит это состояние и вызывает
+движок; тесты движка обходятся без MobX, а сейв — это то же состояние.
+
+**Случайности в сюжете нет** — детерминированный генератор случайных чисел не нужен.
 
 ---
 
@@ -201,6 +242,13 @@ type Command =
 
 Три независимых хранилища, как в Ren'Py: сейв (точка в игре), настройки (переживают все
 прохождения), и — позже — `persistent` для прочитанных реплик и достижений.
+
+После решения о чистом ядре `StageStore` и `DialogueStore` могут оказаться просто
+вычисляемыми полями `GameStore` — решается на этапе 2 (шаг 7) и этапе 3.
+
+**Доступ к сторам из слоёв ниже `app/`** — тем же приёмом, что тема: в `shared/` пустой
+интерфейс `AppStores` и хук `useStores()`, `app/` расширяет интерфейс через `declare module`.
+Импортов снизу вверх нет, типы полные.
 
 ---
 
@@ -269,12 +317,13 @@ React 18, это дешевле, чем воевать со стилями.
 
 ### Этап 2. Ядро движка: типы и интерпретатор · [задача](./tasks/02-engine-core.md)
 
-- `engine/content-types`: команды, сцена, `LocalizedText`, `resolveText`.
-- `engine/interpreter`: цикл до команды, требующей interaction; применение мгновенных команд к
-  `StageStore` с автозаменой по тегу; `scene` очищает спрайты; `start()`, `advance()`,
-  `requestAdvance()`.
-- `engine/navigation`: реестр сцен, `jump`.
-- `content/`: реестры id, `variableDefaults`, демо-сцена с текстом-заглушкой.
+- `engine/`: типы `Command<I>` с дженериком по id, `ChoiceOption` с блоком, `resolveText`;
+  чистые функции над состоянием — мгновенные команды с автозаменой по тегу, `scene` очищает
+  спрайты; реестр сцен с плоской программой и проверкой целей `jump`; интерпретатор с
+  лимитом шагов, конец сцены = конец игры. Без MobX.
+- `content/`: id, говорящие, `variableDefaults`, фабрики команд, демо-сцена.
+- `shared/`: `AppStores` + `useStores()` по приёму темы; `app/`: `GameStore` держит состояние
+  движка, «Новая игра» запускает демо-сцену.
 - Тесты Vitest: мгновенные команды применяются подряд; на команде с interaction выполнение
   встаёт; `show` с тем же тегом заменяет спрайт, а не добавляет второй; `scene` очищает
   спрайты; `jump` переключает сцену; снапшот состояния сериализуется и восстанавливается
@@ -303,6 +352,8 @@ React 18, это дешевле, чем воевать со стилями.
 
 - `features/make-choice` + рендер вариантов, команда `set`, опциональное условие `when`
   у варианта выбора.
+- Разворот блоков `choice` в плоскую программу (типы готовы с этапа 2): `goTo` уводит в
+  другую сцену, блок-реакция продолжает выполнение за развилкой; вложенные блоки.
 - Реестр `variableDefaults` подключён: движок стартует с дефолтов, `set` их меняет.
 - Ветвящийся тестовый контент в `content/__dev__/` — в игру не входит, нужен чтобы прогнать
   механику, которой в линейной сцене нет.
