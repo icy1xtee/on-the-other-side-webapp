@@ -35,6 +35,16 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 - Three TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
   (engine, **no DOM**), `tsconfig.node.json` (vite config).
 - `zod` arrives at stage 5, `howler` at stage 6 — don't add them earlier.
+- Fonts: Geist / Geist Mono from `@fontsource/geist` and `@fontsource/geist-mono` (the Google
+  Fonts builds, **with Cyrillic** — `@fontsource/geist-sans` is Latin-only). Import the
+  per-weight CSS (`400.css`); the per-subset files lack `unicode-range` and can't be combined.
+
+## Design
+
+The design comes from Claude Design: `.claude/ref/html/on-the-other-side-demo-layout-design.html`
+(git-ignored, a bundled page — unpack its template rather than reading it raw), demo art in
+`.claude/ref/images/`. It is drawn for a ~1280px page: **design px × 1.5** = stage px. Tokens
+live in `src/app/styles/theme.ts`; components never hard-code colours or sizes.
 
 ## Layout and boundaries
 
@@ -43,9 +53,14 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
               imports. Read engine/README.md before touching it.
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/app/stores  RootStore, UiStore, GameStore (MobX wrapper around the engine)
+src/app/stores  RootStore, UiStore, GameStore (MobX wrapper around the engine; resolves ids
+              into image URLs and names via `presentation`, so UI never sees content ids)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
-src/content   the story: ids, speakers, variables, factories (dsl.ts), scenes
+src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
+              controls), Space/Enter; typewriter state; Esc → menu
+src/content   the story: ids, speakers, variables, assets (files behind ids), factories
+              (dsl.ts), scenes
+src/assets    art files (WebP / SVG)
 ```
 
 Enforced by `no-restricted-imports` in `.oxlintrc.json`: `engine/` can't import `src/`,

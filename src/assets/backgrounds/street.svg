@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <!-- Placeholder: a night street in flat shapes. Deliberately plain, to be replaced with art. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1226"/>
+      <stop offset="0.65" stop-color="#1b2a52"/>
+      <stop offset="1" stop-color="#2a1f3d"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <g fill="#0b1020">
+    <rect x="0" y="380" width="260" height="700"/>
+    <rect x="240" y="300" width="220" height="780"/>
+    <rect x="1380" y="340" width="240" height="740"/>
+    <rect x="1600" y="260" width="320" height="820"/>
+  </g>
+  <g fill="#e9c27a" opacity="0.5">
+    <rect x="300" y="380" width="26" height="36"/>
+    <rect x="360" y="460" width="26" height="36"/>
+    <rect x="1440" y="420" width="26" height="36"/>
+    <rect x="1680" y="360" width="26" height="36"/>
+    <rect x="1760" y="500" width="26" height="36"/>
+  </g>
+  <rect x="0" y="860" width="1920" height="220" fill="#141a2c"/>
+  <rect x="930" y="420" width="12" height="440" fill="#1d2438"/>
+  <circle cx="936" cy="420" r="180" fill="url(#lamp)"/>
+</svg>

@@ -1,13 +1,14 @@
 import { createSceneRegistry } from '@engine';
 import { autorun } from 'mobx';
 import { describe, expect, it, vi } from 'vitest';
-import { GameStore } from './GameStore';
+import { GameStore, type Presentation } from './GameStore';
 import { RootStore } from './RootStore';
 
 const registry = createSceneRegistry(
   {
     intro: [
       { type: 'scene', background: 'room' },
+      { type: 'show', tag: 'anna', emotion: 'happy', at: 'left' },
       { type: 'say', speaker: 'anna', text: 'Первая' },
       { type: 'say', text: 'Последняя' },
     ],
@@ -15,28 +16,53 @@ const registry = createSceneRegistry(
   'intro',
 );
 
+const presentation: Presentation = {
+  speakers: { anna: { name: 'Анна' } },
+  assets: {
+    backgrounds: { room: '/room.webp' },
+    characters: { anna: { happy: '/anna-happy.webp' } },
+    portraits: { anna: '/anna-portrait.webp' },
+  },
+};
+
 function createStore(onEnd = vi.fn()) {
-  return { store: new GameStore({ registry, variableDefaults: { trust: 0 }, onEnd }), onEnd };
+  return {
+    store: new GameStore({ registry, variableDefaults: { trust: 0 }, presentation, onEnd }),
+    onEnd,
+  };
 }
 
 describe('GameStore', () => {
-  it('starts the story on the first line', () => {
+  it('starts the story on the first line, with ids resolved into files and names', () => {
     const { store } = createStore();
     store.newGame();
 
-    expect(store.line).toEqual({ type: 'say', speaker: 'anna', text: 'Первая' });
-    expect(store.stage).toEqual({ background: 'room', sprites: [] });
+    expect(store.background).toBe('/room.webp');
+    expect(store.sprites).toEqual([{ tag: 'anna', at: 'left', src: '/anna-happy.webp' }]);
+    expect(store.line).toEqual({
+      key: 'intro:2',
+      speaker: { name: 'Анна', portrait: '/anna-portrait.webp' },
+      text: 'Первая',
+    });
   });
 
-  it('advances line by line and reports the end', () => {
+  it('shows narration without a speaker', () => {
+    const { store } = createStore();
+    store.newGame();
+    store.advance();
+
+    expect(store.line).toEqual({ key: 'intro:3', speaker: null, text: 'Последняя' });
+  });
+
+  it('reports the end after the last line', () => {
     const { store, onEnd } = createStore();
     store.newGame();
     store.advance();
-    expect(store.line?.text).toBe('Последняя');
     expect(onEnd).not.toHaveBeenCalled();
 
     store.advance();
     expect(store.interaction).toEqual({ type: 'end' });
+    expect(store.line).toBeNull();
     expect(onEnd).toHaveBeenCalledOnce();
   });
 
@@ -44,26 +70,27 @@ describe('GameStore', () => {
     const { store } = createStore();
     expect(() => store.advance()).not.toThrow();
     expect(store.state).toBeNull();
+    expect(store.sprites).toEqual([]);
   });
 
   it('is observable: a reaction sees each new line', () => {
     const { store } = createStore();
-    const lines: Array<string | undefined> = [];
+    const speakers: Array<string | undefined> = [];
     const stop = autorun(() => {
-      lines.push(store.line?.speaker);
+      speakers.push(store.line?.speaker?.name);
     });
 
     store.newGame();
     store.advance();
     stop();
 
-    expect(lines).toEqual([undefined, 'anna', undefined]);
+    expect(speakers).toEqual([undefined, 'Анна', undefined]);
   });
 });
 
 describe('RootStore', () => {
   it('opens the game on a new game and goes back to the menu when the story ends', () => {
-    const root = new RootStore({ registry, variableDefaults: {} });
+    const root = new RootStore({ registry, variableDefaults: {}, presentation });
 
     root.newGame();
     expect(root.ui.screen).toBe('game');
