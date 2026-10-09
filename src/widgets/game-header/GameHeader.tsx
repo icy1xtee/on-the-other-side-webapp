@@ -2,7 +2,7 @@ import { Cog } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { u } from '@/shared/lib/units';
-import { PillButton } from '@/shared/ui/PillButton';
+import { IconButton } from '@/shared/ui/IconButton';
 
 type GameHeaderProps = {
   /** Settings arrive in stage 6; until then the button is a stub. */
@@ -19,11 +19,7 @@ export function GameHeader({ onSettings }: GameHeaderProps) {
         <LogoMark />
         <LogoText>on the other side</LogoText>
       </Logo>
-      <SettingsButton
-        aria-label={t('header.settings')}
-        title={t('header.settings')}
-        onClick={onSettings}
-      >
+      <SettingsButton label={t('header.settings')} tooltipPlacement="bottom" onClick={onSettings}>
         <Cog />
       </SettingsButton>
     </Header>
@@ -67,9 +63,8 @@ const LogoText = styled.div`
   letter-spacing: 0.52em;
 `;
 
-const SettingsButton = styled(PillButton)`
+const SettingsButton = styled(IconButton)`
   width: ${u(34)};
   height: ${u(34)};
-  padding: 0;
   font-size: ${u(15)};
 `;

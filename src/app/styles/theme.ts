@@ -23,9 +23,14 @@ export const theme = {
     buttonBackground: 'rgba(255, 255, 255, 0.03)',
     buttonBackgroundHover: 'rgba(255, 255, 255, 0.08)',
     buttonBorder: 'rgba(255, 255, 255, 0.12)',
-    // Draft until stage 4 brings choices.
-    choiceIdle: '#2b2b36',
-    choiceHover: '#40405a',
+    // Choices are not in the design yet: options are plain text that lights up in the colour of
+    // the logo mark.
+    choiceText: '#d6dae2',
+    choiceTextLit: '#a9e3ee',
+    // Opaque: a line's tooltip may lie over the system buttons.
+    tooltipBackground: '#26292f',
+    tooltipBorder: 'rgba(255, 255, 255, 0.08)',
+    tooltipText: '#e8eaef',
   },
   surfaces: {
     stage:
@@ -37,11 +42,16 @@ export const theme = {
       'linear-gradient(90deg, rgba(5, 7, 11, 0.35) 0%, rgba(5, 7, 11, 0) 30%, rgba(5, 7, 11, 0) 80%, rgba(5, 7, 11, 0.3) 100%)',
     header: 'linear-gradient(180deg, rgba(5, 7, 11, 0.94), rgba(7, 10, 16, 0.82))',
     panel: 'linear-gradient(180deg, rgba(14, 18, 27, 0.96), rgba(8, 11, 17, 0.97))',
+    namebox: 'linear-gradient(180deg, rgba(20, 26, 38, 0.98), rgba(11, 15, 23, 0.98))',
     logoMark: 'radial-gradient(circle at 32% 30%, #a9e3ee 0%, #4f9fb8 40%, #1c4e66 100%)',
   },
   shadows: {
     header: '0 1px 18px rgba(60, 110, 210, 0.18)',
     panel: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+    namebox: '0 6px 20px rgba(0, 0, 0, 0.4)',
+    /** A text-shadow: the glow of a lit choice option. */
+    choiceGlow: '0 0 14px rgba(110, 190, 215, 0.55)',
+    tooltip: '0 6px 18px rgba(0, 0, 0, 0.45)',
     logoMark: '0 0 14px rgba(110, 190, 215, 0.35)',
   },
   typography: {
@@ -49,9 +59,10 @@ export const theme = {
     monoFamily: "'Geist Mono', ui-monospace, monospace",
     titleSize: 64,
     interfaceSize: 22,
-    speakerNameSize: 22,
+    speakerNameSize: 18,
     dialogueSize: 16.5,
     buttonSize: 13,
+    tooltipSize: 12,
     logoSize: 11,
     captionSize: 10,
     lineHeight: 1.6,
@@ -64,20 +75,35 @@ export const theme = {
   dialogue: {
     insetX: 52,
     bottom: 6,
-    paddingTop: 23,
     paddingX: 28,
     paddingBottom: 24,
+    /** From the namebox's lower half to the first line; the text starts there for everyone. */
+    textGap: 14,
     radius: 16,
-    gapX: 22,
-    gapY: 16,
-    portraitSize: 67,
-    portraitRadius: 12,
-    nameGap: 9,
-    textMaxWidth: 920,
-    /** Narrower than this, the buttons wrap below the text. */
-    textMinWidth: 440,
+    /**
+     * The panel's full inner width on a 16:9 window; a wider window stops the lines here, or
+     * they would grow too long to read.
+     */
+    textMaxWidth: 1120,
+    /** Lines the panel holds before it grows: a line of two, or a prompt and two options. */
+    minLines: 3,
     caretWidth: 8,
     caretHeight: 19,
+  },
+  /**
+   * The speaker's portrait and name on a plate across the panel's top edge, half over it —
+   * Ren'Py's namebox. It sits apart from the text, so a line starts at the same place whoever
+   * speaks, the narrator included.
+   */
+  namebox: {
+    height: 52,
+    avatarSize: 44,
+    avatarRadius: 10,
+    /** Around the avatar; a namebox without one is padded like its right side. */
+    paddingStart: 4,
+    paddingEnd: 18,
+    gap: 12,
+    radius: 14,
   },
   button: {
     height: 30,
@@ -96,9 +122,22 @@ export const theme = {
     center: 36.5,
     right: 62,
   },
+  /**
+   * A choice inside the dialogue panel: options are lines of text under the prompt, which steps
+   * back — lifted, dimmed, cut to one line. Draft: the design has no choices yet.
+   */
   choice: {
-    width: 790,
-    gap: 22,
+    promptLift: 6,
+    promptOpacity: 0.5,
+    /** The dot that lights up beside a hovered option, in the panel's padding. */
+    markerSize: 6,
+    markerOffset: 15,
+  },
+  tooltip: {
+    offset: 8,
+    paddingX: 9,
+    paddingY: 5,
+    radius: 7,
   },
   zIndex: {
     background: 0,
@@ -110,6 +149,12 @@ export const theme = {
     transitionMs: 500,
     /** The design's typewriter speed; becomes a player setting in stage 6. */
     defaultTextCps: 38,
+    /** The prompt stepping back and the options coming in, one after another. */
+    choiceRevealMs: 320,
+    choiceStaggerMs: 70,
+    tooltipMs: 140,
+    /** Hover this long before a tooltip shows: passing the pointer over buttons shows nothing. */
+    tooltipDelayMs: 250,
   },
 };
 

@@ -1,4 +1,4 @@
-import type { Command, StateCommand } from '../types/command';
+import type { ChoicePrompt, Command, StateCommand } from '../types/command';
 import type { VarValue } from '../types/ids';
 import type { LocalizedText } from '../types/text';
 
@@ -18,7 +18,13 @@ export type Instruction =
   | StateCommand
   | { type: 'jump'; scene: string }
   | { type: 'say'; speaker?: string; text: LocalizedText }
-  | { type: 'choice'; options: CompiledOption[] }
+  | {
+      type: 'choice';
+      prompt?: ChoicePrompt;
+      options: CompiledOption[];
+      /** Step right after the choice and its blocks, where reactions converge. */
+      next: number;
+    }
   /** Internal: the end of a choice block, continue after the choice. */
   | { type: 'goto'; step: number };
 
@@ -42,7 +48,8 @@ function emitBlock(program: Instruction[], commands: readonly Command[]) {
 
 function emitChoice(program: Instruction[], choice: Extract<Command, { type: 'choice' }>) {
   const options: CompiledOption[] = [];
-  program.push({ type: 'choice', options });
+  const instruction = { type: 'choice' as const, prompt: choice.prompt, options, next: -1 };
+  program.push(instruction);
 
   const exits: Array<{ type: 'goto'; step: number }> = [];
   for (const option of choice.options) {
@@ -58,6 +65,7 @@ function emitChoice(program: Instruction[], choice: Extract<Command, { type: 'ch
     }
   }
 
+  instruction.next = program.length;
   for (const exit of exits) {
     exit.step = program.length;
   }

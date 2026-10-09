@@ -15,7 +15,14 @@ export type Command<I extends Ids = Ids> =
   | { type: 'jump'; scene: I['scene'] }
   // Interaction: execution stops until the player acts. No speaker means the narrator.
   | { type: 'say'; speaker?: I['speaker']; text: LocalizedText }
-  | { type: 'choice'; options: readonly ChoiceOption<I>[] };
+  | { type: 'choice'; prompt?: ChoicePrompt<I>; options: readonly ChoiceOption<I>[] };
+
+/**
+ * The line a choice asks with, on screen while the player chooses — the say statement inside a
+ * Ren'Py `menu`. It belongs to the choice rather than to the line before it, so a save made at
+ * the choice shows it too. No speaker means the narrator.
+ */
+export type ChoicePrompt<I extends Ids = Ids> = { speaker?: I['speaker']; text: LocalizedText };
 
 export type ChoiceOption<I extends Ids = Ids> = {
   text: LocalizedText;

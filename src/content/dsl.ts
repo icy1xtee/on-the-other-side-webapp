@@ -5,7 +5,7 @@
 import type { LocalizedText, SpritePosition } from '@engine';
 import type { BackgroundId, CharacterId, EmotionOf, MusicId, SceneId, SfxId } from './ids';
 import type { SpeakerId } from './speakers';
-import type { Cmd, Option } from './types';
+import type { Cmd, Line, Option } from './types';
 import type { GameVars } from './variables';
 
 /** Clear the stage and set a background — Ren'Py's `scene`. */
@@ -48,17 +48,27 @@ export function goTo(target: SceneId): Cmd {
   return { type: 'jump', scene: target };
 }
 
-export function say(speaker: SpeakerId, text: LocalizedText): Cmd {
+export function say(speaker: SpeakerId, text: LocalizedText): Line {
   return { type: 'say', speaker, text };
 }
 
 /** A line without a speaker. */
-export function narrate(text: LocalizedText): Cmd {
+export function narrate(text: LocalizedText): Line {
   return { type: 'say', text };
 }
 
-export function choice(options: readonly Option[]): Cmd {
-  return { type: 'choice', options };
+/**
+ * A choice. A line given first stays on screen while the player chooses — the say statement
+ * inside a Ren'Py `menu`: `choice(say('mila', 'Куда пойдём?'), [option(…), option(…)])`.
+ */
+export function choice(options: readonly Option[]): Cmd;
+export function choice(prompt: Line, options: readonly Option[]): Cmd;
+export function choice(...args: [readonly Option[]] | [Line, readonly Option[]]): Cmd {
+  if (args.length === 1) {
+    return { type: 'choice', options: args[0] };
+  }
+  const [{ speaker, text }, options] = args;
+  return { type: 'choice', prompt: speaker ? { speaker, text } : { text }, options };
 }
 
 /**

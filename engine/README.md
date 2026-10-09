@@ -18,6 +18,7 @@ The model follows Ren'Py; see `.claude/engine-research.md` for what was taken an
 const registry = createSceneRegistry(scenes, 'intro'); // compiles scenes, checks jump targets
 let result = startGame(registry, variableDefaults); // runs up to the first line or choice
 result = advance(result.state, registry); // the player clicked: next line
+result = choose(result.state, registry, 1); // the player picked option 1 of a choice
 result = run(savedState, registry); // loading a save: no replay needed
 ```
 
@@ -36,7 +37,11 @@ result = run(savedState, registry); // loading a save: no replay needed
   replaces that sprite in place and keeps its position unless `at` is given; positions are
   `left / center / right`.
 - **Choices** hold blocks. A block plays and execution continues after the choice, like a
-  Ren'Py `menu`; a block ending with `jump` leaves for another scene.
+  Ren'Py `menu`; a block ending with `jump` leaves for another scene. A choice may carry a
+  `prompt` — the line on screen while the player chooses (the say statement inside a `menu`).
+- **Conditions.** An option whose `when` fails is reported as `available: false`, and the app
+  hides it; `choose()` takes the index among all options and refuses a hidden one. A choice with
+  no available option is skipped, as Ren'Py skips such a menu.
 - **Programs.** Each scene is compiled once into a flat list of instructions, choice blocks
   included, so a position is always `{ sceneId, step }`.
 - **The end.** A scene that runs out without a `jump` ends the game.
@@ -51,5 +56,5 @@ result = run(savedState, registry); // loading a save: no replay needed
 types/        commands, ids, text
 state/        GameState, applyInstant (instant commands), effects
 program/      compileScene (flattening), sceneRegistry
-interpreter/  startGame, run, advance, step limit
+interpreter/  startGame, run, advance, choose, step limit
 ```
