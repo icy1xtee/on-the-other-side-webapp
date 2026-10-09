@@ -5,7 +5,10 @@ type BackgroundLayerProps = {
   src: string | undefined;
 };
 
-/** The scene art across the top of the frame, shaded where the dialogue panel lies over it. */
+/**
+ * The scene art across the top of the window, shaded where the dialogue panel lies over it.
+ * `cover` crops the art to the window's shape instead of leaving bars.
+ */
 export function BackgroundLayer({ src }: BackgroundLayerProps) {
   return (
     <Scene>
@@ -18,7 +21,7 @@ export function BackgroundLayer({ src }: BackgroundLayerProps) {
 const Scene = styled.div`
   position: absolute;
   inset: 0 0 auto;
-  height: ${({ theme }) => theme.stage.sceneHeight}px;
+  height: ${({ theme }) => theme.layout.scenePercent}%;
 `;
 
 const Image = styled.img`
