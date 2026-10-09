@@ -12,8 +12,8 @@
 
 | # | Шаг | Статус | Коммит |
 |---|---|---|---|
-| 1 | Тема и токены + `ThemeProvider`, `App` → `src/app/` | на проверке | `feat(app): add theme tokens and ThemeProvider` |
-| 2 | Глобальные стили | не начат | `feat(app): add global styles` |
+| 1 | Тема и токены + `ThemeProvider`, `App` → `src/app/` | закоммичен `db7405d` | `feat(app): add theme tokens and ThemeProvider` |
+| 2 | Глобальные стили | на проверке | `feat(app): add global styles` |
 | 3 | Масштабируемый кадр 16:9 со слоями | не начат | `feat(widgets): add scalable 16:9 stage` |
 | 4 | Сторы и переключение экранов | не начат | `feat(app): add root store and screen switching` |
 | 5 | Главное меню и `shared/ui/Button` | не начат | `feat(pages): add main menu with shared Button` |
@@ -40,7 +40,33 @@
 
 Записи добавляются в начало.
 
-### 2026-10-09 · шаг 1 — тема и токены · на проверке
+### 2026-10-09 · шаг 2 — глобальные стили · на проверке
+
+**Сделано:**
+
+- `src/app/styles/global.ts` — `GlobalStyle` на `createGlobalStyle`: reset
+  (`box-sizing`, `margin`, `padding`), `html, body, #root` на 100% высоты с `overflow: hidden`,
+  фон `body` — `theme.colors.letterbox`, цвет текста, шрифт и межстрочный интервал из темы,
+  сглаживание шрифтов, `cursor: default`, `user-select: none`; элементы форм наследуют шрифт
+  и цвет.
+- `App` рендерит `<GlobalStyle />` внутри `ThemeProvider`.
+- Styled-заголовок из шага 1 убран: шрифт теперь наследуется от `body`, заголовок снова
+  обычный `<h1>`.
+
+**Проверено:** `lint`, `typecheck`, `test`, `format:check`, `build` — проходят.
+
+**Проверить глазами:** `npm run dev` — страница чёрная, заголовок светлый, без отступа от
+края; прокрутки нет даже при узком окне; текст заголовка не выделяется мышью.
+
+**Решения по ходу (мелкие, обратимые):**
+
+- `user-select: none` — на весь `body`, а не только на кадр: в новелле весь экран — зона
+  клика, выделяемого текста в 0.1 нет. Если понадобится (поле ввода имени, лог) — точечно
+  `user-select: text`.
+- Reset минимальный, без сторонних библиотек (`normalize.css` и т.п.): нам хватает
+  четырёх правил.
+
+### 2026-10-09 · шаг 1 — тема и токены · закоммичен `db7405d`
 
 **Сделано:**
 

@@ -75,8 +75,10 @@
   тестом.
 - `src/app/styles/theme.ts` — тема с черновыми токенами, `AppTheme` (шаг 1).
 - `src/styled.d.ts` — расширение `DefaultTheme` (шаг 1).
-- `src/app/App.tsx` — `ThemeProvider` + заглушка-заголовок; на шаге 4 сменится переключением
-  экранов.
+- `src/app/styles/global.ts` — `GlobalStyle`: reset, letterbox-фон, `user-select: none`
+  на `body` (шаг 2).
+- `src/app/App.tsx` — `ThemeProvider` + `GlobalStyle` + заглушка-заголовок; на шаге 4
+  сменится переключением экранов.
 - `src/main.tsx` — точка входа со `StrictMode`, остаётся в `src/` (на неё ссылается
   `index.html`).
 
