@@ -1,9 +1,10 @@
 import { createSceneRegistry } from '@engine';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import '@/app/styles/fonts';
 import App from '@/app/App';
 import { RootStore } from '@/app/stores/RootStore';
-import { scenes, startScene, variableDefaults } from '@/content';
+import { assets, scenes, speakers, startScene, variableDefaults } from '@/content';
 
 const rootElement = document.getElementById('root');
 
@@ -17,6 +18,7 @@ if (!rootElement) {
 const rootStore = new RootStore({
   registry: createSceneRegistry(scenes, startScene),
   variableDefaults,
+  presentation: { speakers, assets },
 });
 
 createRoot(rootElement).render(

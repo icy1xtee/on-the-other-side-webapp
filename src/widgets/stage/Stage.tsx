@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import styled, { type DefaultTheme } from 'styled-components';
 import { MIN_STAGE_SCALE, STAGE_HEIGHT, STAGE_WIDTH } from '@/shared/config/stage';
 import { useStageFit } from '@/shared/lib/useStageFit';
@@ -8,13 +8,15 @@ type StageProps = {
   sprites?: ReactNode;
   ui?: ReactNode;
   overlay?: ReactNode;
+  /** A click anywhere in the frame; clicks on empty layers fall through to it. */
+  onClick?: MouseEventHandler<HTMLDivElement>;
 };
 
 /**
  * The 1920×1080 frame, scaled as a whole to fit the window; the rest of the window is letterbox.
  * Layers bottom to top: background → sprites → UI → overlay (Ren'Py's master / screens / overlay).
  */
-export function Stage({ background, sprites, ui, overlay }: StageProps) {
+export function Stage({ background, sprites, ui, overlay, onClick }: StageProps) {
   const { ref, fit } = useStageFit<HTMLDivElement>();
 
   return (
@@ -32,6 +34,7 @@ export function Stage({ background, sprites, ui, overlay }: StageProps) {
         // Inline style, not a styled prop: a styled prop would mint a new CSS class on every
         // resize. No will-change either: it freezes the raster and blurs text after rescaling.
         <Frame
+          onClick={onClick}
           data-scale={fit.scale.toFixed(3)}
           style={{
             transform: `translate(${fit.offsetX}px, ${fit.offsetY}px) scale(${fit.scale})`,
@@ -62,7 +65,8 @@ const Frame = styled.div`
   height: ${({ theme }) => theme.stage.height}px;
   transform-origin: 0 0;
   overflow: hidden;
-  background: ${({ theme }) => theme.colors.stageBackground};
+  background: ${({ theme }) => theme.surfaces.stage};
+  background-color: ${({ theme }) => theme.colors.stageBackground};
 `;
 
 /**
