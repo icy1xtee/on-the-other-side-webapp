@@ -7,6 +7,7 @@ import {
   restoreSave,
   run,
   startGame,
+  type Effect,
   type GameState,
   type Interaction,
   type RunResult,
@@ -15,15 +16,19 @@ import {
   type VarValue,
 } from '@engine';
 import { makeAutoObservable, observable } from 'mobx';
+import type { AudioOutput } from '@/shared/lib/audio';
 import type { StorageSlot } from '@/shared/lib/storage';
 
-/** What turns the engine's ids into pictures and names. Supplied by content at boot. */
+/** What turns the engine's ids into pictures, names and sounds. Supplied by content at boot. */
 export type Presentation = {
   speakers: Readonly<Record<string, { name: string }>>;
   assets: {
     backgrounds: Readonly<Record<string, string>>;
     characters: Readonly<Record<string, Readonly<Record<string, string>>>>;
     portraits: Readonly<Record<string, string>>;
+    music: Readonly<Record<string, string>>;
+    /** May lack a sound: one without a file plays nothing. */
+    sounds: Readonly<Partial<Record<string, string>>>;
   };
 };
 
@@ -55,6 +60,8 @@ export type GameStoreOptions = {
   presentation: Presentation;
   /** Where the autosave lives. It may refuse to work: the game then plays on without saves. */
   saveSlot: StorageSlot;
+  /** Plays the music and sounds the story asks for. */
+  audio: AudioOutput;
   /** Called when the script runs out — Ren'Py goes back to the main menu then. */
   onEnd: () => void;
   /** Called once, the first time an autosave can't be written: the player should know. */
@@ -164,7 +171,11 @@ export class GameStore {
     if (!this.resumable) {
       return false;
     }
-    this.apply(run(this.resumable, this.options.registry));
+    const resumed = this.resumable;
+    this.apply(run(resumed, this.options.registry));
+    // Nothing was re-executed, so nothing re-played: the music comes back from the state.
+    // `ifChanged`: coming back from the menu to the same scene, the track isn't restarted.
+    this.options.audio.playMusic(this.musicSrc(resumed.audio.music), { ifChanged: true });
     return true;
   }
 
@@ -193,7 +204,7 @@ export class GameStore {
     this.turn += 1;
     this.state = result.state;
     this.interaction = result.interaction;
-    // result.effects (music, sfx) are dropped until the audio layer arrives in stage 6.
+    result.effects.forEach(this.play);
     if (result.interaction.type === 'end') {
       // The playthrough is over: nothing is left to continue.
       this.resumable = null;
@@ -203,6 +214,23 @@ export class GameStore {
       this.saveUnavailableReported = true;
       this.options.onSaveUnavailable?.();
     }
+  }
+
+  private play(effect: Effect) {
+    const { audio, presentation } = this.options;
+    if (effect.type === 'music') {
+      audio.playMusic(this.musicSrc(effect.asset), { ifChanged: effect.ifChanged });
+      return;
+    }
+    const src = presentation.assets.sounds[effect.asset];
+    if (src) {
+      audio.playSound(src);
+    }
+  }
+
+  /** A track without a file plays as silence rather than leaving the last one on. */
+  private musicSrc(id: string | null): string | null {
+    return id === null ? null : (this.options.presentation.assets.music[id] ?? null);
   }
 
   private writeSave(state: GameState): boolean {

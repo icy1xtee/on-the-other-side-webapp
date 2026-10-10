@@ -3,13 +3,17 @@ import { autorun } from 'mobx';
 import { describe, expect, it, vi } from 'vitest';
 import { GameStore, type Presentation } from './GameStore';
 import { RootStore } from './RootStore';
+import { fakeAudio, memorySlot } from './testDoubles';
 
 const registry = createSceneRegistry(
   {
     intro: [
+      { type: 'music', asset: 'theme' },
       { type: 'scene', background: 'room' },
       { type: 'show', tag: 'mila', emotion: 'happy', at: 'left' },
+      { type: 'sfx', asset: 'door' },
       { type: 'say', speaker: 'mila', text: 'Первая' },
+      { type: 'sfx', asset: 'silent' },
       { type: 'say', text: 'Последняя' },
     ],
   },
@@ -22,43 +26,39 @@ const presentation: Presentation = {
     backgrounds: { room: '/room.webp' },
     characters: { mila: { happy: '/mila-happy.webp' } },
     portraits: { mila: '/mila-portrait.webp' },
+    music: { theme: '/theme.mp3' },
+    sounds: { door: '/door.mp3' },
   },
 };
 
-/** A save slot in memory; a refusing one behaves like blocked or full browser storage. */
-function memorySlot(initial: string | null = null, { refusing = false } = {}) {
-  let value = initial;
-  return {
-    get value() {
-      return value;
-    },
-    writes: 0,
-    read: () => (refusing ? null : value),
-    write(text: string) {
-      if (refusing) {
-        return false;
-      }
-      value = text;
-      this.writes += 1;
-      return true;
-    },
-    clear: () => {
-      value = null;
-    },
-  };
-}
-
-function createStore(onEnd = vi.fn(), saveSlot = memorySlot()) {
+function createStore(onEnd = vi.fn(), saveSlot = memorySlot(), audio = fakeAudio()) {
   return {
     store: new GameStore({
       registry,
       variableDefaults: { trust: 0 },
       presentation,
       saveSlot,
+      audio,
       onEnd,
     }),
     onEnd,
     saveSlot,
+    audio,
+  };
+}
+
+/** A RootStore over memory storage and silent audio. */
+function createRoot(saveSlot = memorySlot(), settingsSlot = memorySlot(), audio = fakeAudio()) {
+  return {
+    root: new RootStore({
+      registry,
+      variableDefaults: {},
+      presentation,
+      saveSlot,
+      settingsSlot,
+      audio,
+    }),
+    audio,
   };
 }
 
@@ -70,7 +70,7 @@ describe('GameStore', () => {
     expect(store.background).toBe('/room.webp');
     expect(store.sprites).toEqual([{ tag: 'mila', at: 'left', src: '/mila-happy.webp' }]);
     expect(store.line).toEqual({
-      key: 'intro:2:1',
+      key: 'intro:4:1',
       speaker: { name: 'Мила', portrait: '/mila-portrait.webp' },
       text: 'Первая',
     });
@@ -81,7 +81,7 @@ describe('GameStore', () => {
     store.newGame();
     store.advance();
 
-    expect(store.line).toEqual({ key: 'intro:3:2', speaker: null, text: 'Последняя' });
+    expect(store.line).toEqual({ key: 'intro:6:2', speaker: null, text: 'Последняя' });
   });
 
   it('reports the end after the last line', () => {
@@ -142,6 +142,7 @@ describe('GameStore at a choice', () => {
       variableDefaults: { trust: 0 },
       presentation,
       saveSlot: memorySlot(),
+      audio: fakeAudio(),
       onEnd: vi.fn(),
     });
     store.newGame();
@@ -198,6 +199,7 @@ describe('GameStore at a choice', () => {
       variableDefaults: {},
       presentation,
       saveSlot: memorySlot(),
+      audio: fakeAudio(),
       onEnd: vi.fn(),
     });
     store.newGame();
@@ -222,11 +224,11 @@ describe('GameStore saves', () => {
     const { store, saveSlot } = createStore();
     store.newGame();
     expect(saveSlot.writes).toBe(1);
-    expect(JSON.parse(saveSlot.value!)).toMatchObject({ position: { sceneId: 'intro', step: 2 } });
+    expect(JSON.parse(saveSlot.value!)).toMatchObject({ position: { sceneId: 'intro', step: 4 } });
 
     store.advance();
     expect(saveSlot.writes).toBe(2);
-    expect(JSON.parse(saveSlot.value!)).toMatchObject({ position: { sceneId: 'intro', step: 3 } });
+    expect(JSON.parse(saveSlot.value!)).toMatchObject({ position: { sceneId: 'intro', step: 6 } });
   });
 
   it('resumes after a reload on the same line, with the same stage', () => {
@@ -289,6 +291,7 @@ describe('GameStore saves', () => {
       variableDefaults: {},
       presentation,
       saveSlot: memorySlot(null, { refusing: true }),
+      audio: fakeAudio(),
       onEnd: vi.fn(),
       onSaveUnavailable,
     });
@@ -309,14 +312,59 @@ describe('GameStore saves', () => {
   });
 });
 
-describe('RootStore', () => {
-  it('opens the game on a new game and goes back to the menu when the story ends', () => {
-    const root = new RootStore({
-      registry,
+describe('GameStore audio', () => {
+  it('plays the music and sounds the story asks for, a sound without a file staying silent', () => {
+    const { store, audio } = createStore();
+    store.newGame();
+
+    expect(audio.playMusic).toHaveBeenCalledWith('/theme.mp3', { ifChanged: false });
+    expect(audio.playSound).toHaveBeenCalledWith('/door.mp3');
+
+    store.advance();
+    expect(audio.playSound).toHaveBeenCalledOnce();
+  });
+
+  it('brings the music back on Continue without restarting the same track', () => {
+    const before = createStore();
+    before.store.newGame();
+
+    const { store, audio } = createStore(vi.fn(), memorySlot(before.saveSlot.value));
+    store.continueGame();
+
+    expect(audio.playMusic).toHaveBeenCalledOnce();
+    expect(audio.playMusic).toHaveBeenCalledWith('/theme.mp3', { ifChanged: true });
+    // Nothing on the way to the saved line is re-executed: the door doesn't knock twice.
+    expect(audio.playSound).not.toHaveBeenCalled();
+  });
+
+  it('plays a track without a file as silence', () => {
+    const silent = createSceneRegistry(
+      {
+        intro: [
+          { type: 'music', asset: 'unknown' },
+          { type: 'say', text: 'Тихо' },
+        ],
+      },
+      'intro',
+    );
+    const audio = fakeAudio();
+    const store = new GameStore({
+      registry: silent,
       variableDefaults: {},
       presentation,
       saveSlot: memorySlot(),
+      audio,
+      onEnd: vi.fn(),
     });
+    store.newGame();
+
+    expect(audio.playMusic).toHaveBeenCalledWith(null, { ifChanged: false });
+  });
+});
+
+describe('RootStore', () => {
+  it('opens the game on a new game and goes back to the menu when the story ends', () => {
+    const { root, audio } = createRoot();
 
     root.newGame();
     expect(root.ui.screen).toBe('game');
@@ -324,38 +372,49 @@ describe('RootStore', () => {
     root.game.advance();
     root.game.advance();
     expect(root.ui.screen).toBe('menu');
+    // The menu has no music of its own: the game's track fades out.
+    expect(audio.playMusic).toHaveBeenLastCalledWith(null);
   });
 
   it('continues into the game, or stays in the menu with nothing to continue', () => {
-    const empty = new RootStore({
-      registry,
-      variableDefaults: {},
-      presentation,
-      saveSlot: memorySlot(),
-    });
+    const { root: empty } = createRoot();
     empty.continueGame();
     expect(empty.ui.screen).toBe('menu');
 
-    const root = new RootStore({
-      registry,
-      variableDefaults: {},
-      presentation,
-      saveSlot: memorySlot(),
-    });
+    const { root } = createRoot();
     root.newGame();
-    root.ui.showMenu();
+    root.toMainMenu();
     root.continueGame();
     expect(root.ui.screen).toBe('game');
     expect(root.game.line?.text).toBe('Первая');
   });
 
+  it('asks before a new game overwrites the one to continue', () => {
+    const { root } = createRoot();
+    root.requestNewGame();
+    expect(root.ui.screen).toBe('game');
+    expect(root.ui.overlay).toBeNull();
+
+    root.toMainMenu();
+    root.requestNewGame();
+    expect(root.ui.screen).toBe('menu');
+    expect(root.ui.overlay).toBe('confirmNewGame');
+
+    root.newGame();
+    expect(root.ui.screen).toBe('game');
+    expect(root.ui.overlay).toBeNull();
+  });
+
+  it('applies the volumes at once, at boot and on every change', () => {
+    const { root, audio } = createRoot();
+    expect(audio.setVolumes).toHaveBeenLastCalledWith({ master: 1, music: 0.5, sound: 1 });
+
+    root.settings.setMusicVolume(0.2);
+    expect(audio.setVolumes).toHaveBeenLastCalledWith({ master: 1, music: 0.2, sound: 1 });
+  });
+
   it('shows a notice when the game cannot be saved', () => {
-    const root = new RootStore({
-      registry,
-      variableDefaults: {},
-      presentation,
-      saveSlot: memorySlot(null, { refusing: true }),
-    });
+    const { root } = createRoot(memorySlot(null, { refusing: true }));
     root.newGame();
 
     expect(root.ui.notice).not.toBeNull();

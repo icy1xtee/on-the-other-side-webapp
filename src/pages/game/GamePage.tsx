@@ -8,6 +8,7 @@ import { useStores } from '@/shared/lib/stores/useStores';
 import { DialogueBox, type SystemAction } from '@/widgets/dialogue-box/DialogueBox';
 import { GameHeader } from '@/widgets/game-header/GameHeader';
 import { NoticeToast } from '@/widgets/notice/NoticeToast';
+import { SettingsOverlay } from '@/widgets/settings-overlay/SettingsOverlay';
 import { Stage } from '@/widgets/stage/Stage';
 
 /**
@@ -16,7 +17,7 @@ import { Stage } from '@/widgets/stage/Stage';
  * options come out under it.
  */
 export const GamePage = observer(function GamePage() {
-  const { game, ui } = useStores();
+  const { game, ui, toMainMenu } = useStores();
   const { t } = useTranslation();
   const { line, visibleText, choiceOptions: options, onStageClick } = useAdvanceDialogue();
 
@@ -34,12 +35,13 @@ export const GamePage = observer(function GamePage() {
 
   return (
     <Stage
+      modal={ui.overlay !== null}
       onClick={onStageClick}
       background={<BackgroundLayer src={game.background} />}
       sprites={<CharacterLayer sprites={game.sprites} />}
       ui={
         <>
-          <GameHeader onSettings={() => comingSoon(t('header.settings'))} />
+          <GameHeader onSettings={ui.openSettings} />
           {(line || options) && (
             <DialogueBox
               speaker={line?.speaker ?? null}
@@ -51,7 +53,14 @@ export const GamePage = observer(function GamePage() {
           )}
         </>
       }
-      overlay={<NoticeToast notice={ui.notice} onHide={ui.hideNotice} />}
+      overlay={
+        <>
+          {ui.overlay === 'settings' && (
+            <SettingsOverlay onClose={ui.closeOverlay} onMainMenu={toMainMenu} />
+          )}
+          <NoticeToast notice={ui.notice} onHide={ui.hideNotice} />
+        </>
+      }
     />
   );
 });

@@ -36,8 +36,12 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
   `vite.config.ts` `resolve.alias`. Vitest reads them from the Vite config.
 - Three TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
   (engine, **no DOM**), `tsconfig.node.json` (vite config).
-- `zod` validates saves in `engine/save` — import **`zod/mini`** (classic `zod` added ~90 KB to
-  the bundle, mini ~26 KB). `howler` arrives at stage 6 — don't add it earlier.
+- `zod` validates saves in `engine/save` and settings — import **`zod/mini`** (classic `zod`
+  added ~90 KB to the bundle, mini ~26 KB).
+- Audio: **howler.js**, touched only by `shared/lib/audio.ts` (`AudioOutput`: channels `music`
+  and `sound`, crossfade, `ifChanged`). The engine reports music and sounds as effects;
+  `GameStore` plays them. Music starts from a click (New game, Continue) — the autoplay policy
+  allows it after a gesture.
 - Icons: **lucide-react**, named imports only (`import { Cog } from 'lucide-react'`) so the
   bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: inside `PillButton`
   an icon is sized in `em` from the button font (so it scales with the UI) and drawn at
@@ -77,22 +81,28 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
               imports. Read engine/README.md before touching it.
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/app/stores  RootStore, UiStore, GameStore (MobX wrapper around the engine; resolves ids
-              into image URLs and names via `presentation`, so UI never sees content ids;
-              autosaves on every line and choice, "Продолжить" resumes from it)
+src/app/stores  RootStore, UiStore (screen, the `overlay` window over it, notices), GameStore
+              (MobX wrapper around the engine; resolves ids into image URLs, names and audio
+              via `presentation`, so UI never sees content ids; plays the engine's audio
+              effects; autosaves on every line and choice, "Продолжить" resumes from it),
+              SettingsStore (volumes, text speed, language — `ots:settings`, apart from the save)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
 src/shared/lib/storage.ts  localStorage that never throws (blocked, private, full → no saves,
               the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:`
+src/shared/lib/audio.ts  the only file that knows howler
 src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
               controls), Space/Enter; typewriter state; at a choice, the prompt is read before
-              the options come out; Esc → menu
+              the options come out; Esc → the settings window (with "Главное меню" in it);
+              nothing reaches the game while a window is open
+src/features/change-settings  the settings' controls; widgets/settings-overlay puts them in a
+              `shared/ui/Modal` (Esc and a click outside close it, caught before the game)
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
               dialogue panel (widgets/dialogue-box renders it in place of the caret)
 src/content   the story: ids, speakers, variables, assets (files behind ids), factories
               (dsl.ts), scenes
 src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
               dev server; `?dev=<scene>` starts from any scene. Left out of production builds
-src/assets    art files (WebP / SVG)
+src/assets    art and music files (WebP / SVG / MP3)
 ```
 
 Enforced by `no-restricted-imports` in `.oxlintrc.json`: `engine/` can't import `src/`,
