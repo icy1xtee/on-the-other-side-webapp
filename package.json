@@ -27,7 +27,8 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-i18next": "^17.0.16",
-    "styled-components": "^6.4.4"
+    "styled-components": "^6.4.4",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

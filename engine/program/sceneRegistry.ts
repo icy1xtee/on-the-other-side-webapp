@@ -1,10 +1,14 @@
 import { EngineError } from '../errors';
 import type { Command } from '../types/command';
 import { compileScene, type Program } from './compileScene';
+import { hashProgram } from './hashProgram';
 
 export type SceneRegistry = {
   readonly startScene: string;
+  hasScene(sceneId: string): boolean;
   getProgram(sceneId: string): Program;
+  /** The fingerprint of the scene's program: a save made in another version of it won't match. */
+  getSceneHash(sceneId: string): string;
 };
 
 /**
@@ -17,6 +21,9 @@ export function createSceneRegistry(
 ): SceneRegistry {
   const programs = new Map(
     Object.entries(scenes).map(([sceneId, commands]) => [sceneId, compileScene(commands)]),
+  );
+  const hashes = new Map(
+    [...programs].map(([sceneId, program]) => [sceneId, hashProgram(program)]),
   );
 
   if (!programs.has(startScene)) {
@@ -32,14 +39,18 @@ export function createSceneRegistry(
     });
   }
 
+  const known = <T>(map: Map<string, T>, sceneId: string): T => {
+    const value = map.get(sceneId);
+    if (value === undefined) {
+      throw new EngineError(`Scene "${sceneId}" is not registered`);
+    }
+    return value;
+  };
+
   return {
     startScene,
-    getProgram(sceneId) {
-      const program = programs.get(sceneId);
-      if (!program) {
-        throw new EngineError(`Scene "${sceneId}" is not registered`);
-      }
-      return program;
-    },
+    hasScene: (sceneId) => programs.has(sceneId),
+    getProgram: (sceneId) => known(programs, sceneId),
+    getSceneHash: (sceneId) => known(hashes, sceneId),
   };
 }

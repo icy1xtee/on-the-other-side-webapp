@@ -4,6 +4,7 @@ export type { Ids, VarName, VarValue } from './types/ids';
 export { resolveText, type LocalizedText } from './types/text';
 export {
   requiresInteraction,
+  SPRITE_POSITIONS,
   type ChoiceOption,
   type ChoicePrompt,
   type Command,
@@ -34,5 +35,8 @@ export {
   type Interaction,
   type RunResult,
 } from './interpreter/interpreter';
+
+export { SAVE_VERSION, type SaveData } from './save/schema';
+export { createSave, parseSave, restoreSave, type ParsedSave } from './save/save';
 
 export { EngineError } from './errors';

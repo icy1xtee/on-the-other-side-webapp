@@ -15,6 +15,9 @@ export const en = {
   'dialogue.action.choices': 'Choices',
   'dialogue.locked': '{{action}} — not available yet',
   'notice.comingSoon': '{{feature}} — coming soon',
+  'notice.saved': 'Game saved',
+  'notice.saveFailed': "Couldn't save: browser storage is unavailable",
+  'notice.autosaveUnavailable': "Saving is unavailable: progress won't be kept",
   'stage.rotateTitle': 'Rotate your device',
   'stage.rotateHint': 'The game is made for landscape',
 } satisfies UiDictionary;

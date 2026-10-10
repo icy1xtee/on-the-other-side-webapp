@@ -17,6 +17,9 @@ export const ru = {
   'dialogue.action.choices': 'Выборы',
   'dialogue.locked': '{{action}} — пока недоступно',
   'notice.comingSoon': '{{feature}} — скоро',
+  'notice.saved': 'Игра сохранена',
+  'notice.saveFailed': 'Не удалось сохранить: хранилище браузера недоступно',
+  'notice.autosaveUnavailable': 'Сохранение недоступно: прогресс не сохранится',
   'stage.rotateTitle': 'Поверните устройство',
   'stage.rotateHint': 'Игра рассчитана на альбомную ориентацию',
 };

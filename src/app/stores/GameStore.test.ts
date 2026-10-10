@@ -25,10 +25,40 @@ const presentation: Presentation = {
   },
 };
 
-function createStore(onEnd = vi.fn()) {
+/** A save slot in memory; a refusing one behaves like blocked or full browser storage. */
+function memorySlot(initial: string | null = null, { refusing = false } = {}) {
+  let value = initial;
   return {
-    store: new GameStore({ registry, variableDefaults: { trust: 0 }, presentation, onEnd }),
+    get value() {
+      return value;
+    },
+    writes: 0,
+    read: () => (refusing ? null : value),
+    write(text: string) {
+      if (refusing) {
+        return false;
+      }
+      value = text;
+      this.writes += 1;
+      return true;
+    },
+    clear: () => {
+      value = null;
+    },
+  };
+}
+
+function createStore(onEnd = vi.fn(), saveSlot = memorySlot()) {
+  return {
+    store: new GameStore({
+      registry,
+      variableDefaults: { trust: 0 },
+      presentation,
+      saveSlot,
+      onEnd,
+    }),
     onEnd,
+    saveSlot,
   };
 }
 
@@ -111,6 +141,7 @@ describe('GameStore at a choice', () => {
       registry: fork,
       variableDefaults: { trust: 0 },
       presentation,
+      saveSlot: memorySlot(),
       onEnd: vi.fn(),
     });
     store.newGame();
@@ -166,6 +197,7 @@ describe('GameStore at a choice', () => {
       registry: loop,
       variableDefaults: {},
       presentation,
+      saveSlot: memorySlot(),
       onEnd: vi.fn(),
     });
     store.newGame();
@@ -185,9 +217,106 @@ describe('GameStore at a choice', () => {
   });
 });
 
+describe('GameStore saves', () => {
+  it('saves on every line, positioned on that line', () => {
+    const { store, saveSlot } = createStore();
+    store.newGame();
+    expect(saveSlot.writes).toBe(1);
+    expect(JSON.parse(saveSlot.value!)).toMatchObject({ position: { sceneId: 'intro', step: 2 } });
+
+    store.advance();
+    expect(saveSlot.writes).toBe(2);
+    expect(JSON.parse(saveSlot.value!)).toMatchObject({ position: { sceneId: 'intro', step: 3 } });
+  });
+
+  it('resumes after a reload on the same line, with the same stage', () => {
+    const before = createStore();
+    before.store.newGame();
+    before.store.advance();
+
+    // A new store over the same storage: the page was reloaded.
+    const { store: after } = createStore(vi.fn(), memorySlot(before.saveSlot.value));
+    expect(after.canContinue).toBe(true);
+    expect(after.continueGame()).toBe(true);
+
+    expect(after.line?.text).toBe('Последняя');
+    expect(after.state).toEqual(before.store.state);
+    expect(after.background).toBe('/room.webp');
+    expect(after.sprites).toEqual(before.store.sprites);
+  });
+
+  it('has nothing to continue without a save', () => {
+    const { store } = createStore();
+    expect(store.canContinue).toBe(false);
+    expect(store.continueGame()).toBe(false);
+    expect(store.state).toBeNull();
+  });
+
+  it('ignores a broken save, saying why in the log', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { store } = createStore(vi.fn(), memorySlot('{"version":1,"position":"nowhere"}'));
+
+    expect(store.canContinue).toBe(false);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Autosave ignored'));
+    warn.mockRestore();
+  });
+
+  it('forgets the save once the story is over', () => {
+    const { store, saveSlot } = createStore();
+    store.newGame();
+    store.advance();
+    store.advance();
+
+    expect(store.interaction).toEqual({ type: 'end' });
+    expect(saveSlot.value).toBeNull();
+    expect(store.canContinue).toBe(false);
+  });
+
+  it('plays on when storage refuses, and still continues within the session', () => {
+    const { store } = createStore(vi.fn(), memorySlot(null, { refusing: true }));
+    store.newGame();
+    store.advance();
+
+    expect(store.line?.text).toBe('Последняя');
+    expect(store.saveNow()).toBe(false);
+    expect(store.canContinue).toBe(true);
+  });
+
+  it('tells once that autosaves fail, however many there are', () => {
+    const onSaveUnavailable = vi.fn();
+    const store = new GameStore({
+      registry,
+      variableDefaults: {},
+      presentation,
+      saveSlot: memorySlot(null, { refusing: true }),
+      onEnd: vi.fn(),
+      onSaveUnavailable,
+    });
+    store.newGame();
+    store.advance();
+    store.saveNow();
+
+    expect(onSaveUnavailable).toHaveBeenCalledOnce();
+  });
+
+  it('saves on demand, but not after the end', () => {
+    const { store, saveSlot } = createStore();
+    expect(store.saveNow()).toBe(false);
+
+    store.newGame();
+    expect(store.saveNow()).toBe(true);
+    expect(saveSlot.writes).toBe(2);
+  });
+});
+
 describe('RootStore', () => {
   it('opens the game on a new game and goes back to the menu when the story ends', () => {
-    const root = new RootStore({ registry, variableDefaults: {}, presentation });
+    const root = new RootStore({
+      registry,
+      variableDefaults: {},
+      presentation,
+      saveSlot: memorySlot(),
+    });
 
     root.newGame();
     expect(root.ui.screen).toBe('game');
@@ -195,5 +324,40 @@ describe('RootStore', () => {
     root.game.advance();
     root.game.advance();
     expect(root.ui.screen).toBe('menu');
+  });
+
+  it('continues into the game, or stays in the menu with nothing to continue', () => {
+    const empty = new RootStore({
+      registry,
+      variableDefaults: {},
+      presentation,
+      saveSlot: memorySlot(),
+    });
+    empty.continueGame();
+    expect(empty.ui.screen).toBe('menu');
+
+    const root = new RootStore({
+      registry,
+      variableDefaults: {},
+      presentation,
+      saveSlot: memorySlot(),
+    });
+    root.newGame();
+    root.ui.showMenu();
+    root.continueGame();
+    expect(root.ui.screen).toBe('game');
+    expect(root.game.line?.text).toBe('Первая');
+  });
+
+  it('shows a notice when the game cannot be saved', () => {
+    const root = new RootStore({
+      registry,
+      variableDefaults: {},
+      presentation,
+      saveSlot: memorySlot(null, { refusing: true }),
+    });
+    root.newGame();
+
+    expect(root.ui.notice).not.toBeNull();
   });
 });

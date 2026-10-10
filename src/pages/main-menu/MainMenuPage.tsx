@@ -7,11 +7,14 @@ import { Stage } from '@/widgets/stage/Stage';
 
 type MainMenuPageProps = {
   onNewGame: () => void;
+  onContinue: () => void;
+  /** A game to resume: the autosave of an unfinished playthrough. */
+  canContinue: boolean;
 };
 
 // The menu lives on the same stage as the game, like Ren'Py's main_menu: one set of sizes and
 // the same "turn your device" hint.
-export function MainMenuPage({ onNewGame }: MainMenuPageProps) {
+export function MainMenuPage({ onNewGame, onContinue, canContinue }: MainMenuPageProps) {
   const { t } = useTranslation();
 
   return (
@@ -22,8 +25,11 @@ export function MainMenuPage({ onNewGame }: MainMenuPageProps) {
             <Title>On the Other Side</Title>
             <Actions>
               <Button onClick={onNewGame}>{t('menu.newGame')}</Button>
-              {/* Enabled once a save exists (stage 5) and the settings overlay lands (stage 6). */}
-              <Button disabled>{t('menu.continue')}</Button>
+              {/* Without a save Continue just stays off — no message: there is nothing to lose. */}
+              <Button disabled={!canContinue} onClick={onContinue}>
+                {t('menu.continue')}
+              </Button>
+              {/* Enabled once the settings overlay lands (stage 6). */}
               <Button disabled>{t('menu.settings')}</Button>
             </Actions>
           </Menu>

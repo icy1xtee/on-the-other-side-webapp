@@ -5,7 +5,7 @@ import { CharacterLayer } from '@/entities/character/ui/CharacterLayer';
 import { useAdvanceDialogue } from '@/features/advance-dialogue/useAdvanceDialogue';
 import { ChoiceList } from '@/features/make-choice/ChoiceList';
 import { useStores } from '@/shared/lib/stores/useStores';
-import { DialogueBox } from '@/widgets/dialogue-box/DialogueBox';
+import { DialogueBox, type SystemAction } from '@/widgets/dialogue-box/DialogueBox';
 import { GameHeader } from '@/widgets/game-header/GameHeader';
 import { NoticeToast } from '@/widgets/notice/NoticeToast';
 import { Stage } from '@/widgets/stage/Stage';
@@ -22,6 +22,16 @@ export const GamePage = observer(function GamePage() {
 
   const comingSoon = (feature: string) => ui.showNotice(t('notice.comingSoon', { feature }));
 
+  // The game saves itself on every line; the Save button does it at once and says so. Loading
+  // is "Продолжить" in the menu: one slot in 0.1, a load screen comes with slots.
+  const onSystemAction = (action: SystemAction) => {
+    if (action === 'save') {
+      ui.showNotice(game.saveNow() ? t('notice.saved') : t('notice.saveFailed'));
+    } else {
+      comingSoon(t(`dialogue.action.${action}`));
+    }
+  };
+
   return (
     <Stage
       onClick={onStageClick}
@@ -36,7 +46,7 @@ export const GamePage = observer(function GamePage() {
               text={line?.text ?? ''}
               visibleText={visibleText}
               choice={options && <ChoiceList options={options} onChoose={game.choose} />}
-              onSystemAction={(action) => comingSoon(t(`dialogue.action.${action}`))}
+              onSystemAction={onSystemAction}
             />
           )}
         </>
