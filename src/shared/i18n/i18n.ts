@@ -11,10 +11,11 @@ export type StoryTranslations = Partial<Record<Language, Readonly<Record<string,
  * Two namespaces: `ui` — interface strings with flat keys, `story` — translations of the
  * story keyed by the Russian lines themselves (gettext-style), so scenes stay readable. A
  * line with no translation falls back to the Russian key, which is the line itself.
+ * `language` is the player's, from the settings.
  */
-export function initI18n(story: StoryTranslations) {
+export function initI18n(story: StoryTranslations, language: Language = defaultLanguage) {
   void i18next.use(initReactI18next).init({
-    lng: defaultLanguage,
+    lng: language,
     fallbackLng: defaultLanguage,
     supportedLngs: languages,
     ns: ['ui', 'story'],

@@ -10,6 +10,11 @@ type StageProps = {
   sprites?: ReactNode;
   ui?: ReactNode;
   overlay?: ReactNode;
+  /**
+   * A window is open in the overlay: the layers under it are `inert` — Tab can't reach their
+   * buttons, nor a click their content, until it closes.
+   */
+  modal?: boolean;
   /** A click anywhere on the stage; clicks on empty layers fall through to it. */
   onClick?: MouseEventHandler<HTMLDivElement>;
 };
@@ -20,7 +25,7 @@ type StageProps = {
  * any aspect ratio. Layers bottom to top: background → sprites → UI → overlay (Ren'Py's master /
  * screens / overlay). A phone held upright is asked to turn: the game is made for landscape.
  */
-export function Stage({ background, sprites, ui, overlay, onClick }: StageProps) {
+export function Stage({ background, sprites, ui, overlay, modal = false, onClick }: StageProps) {
   const { ref, size } = useViewportSize<HTMLDivElement>();
   const { t } = useTranslation();
 
@@ -38,9 +43,15 @@ export function Stage({ background, sprites, ui, overlay, onClick }: StageProps)
       )}
       {size && !needsLandscape(size.width, size.height) && (
         <>
-          <Layer $z="background">{background}</Layer>
-          <Layer $z="sprites">{sprites}</Layer>
-          <Layer $z="ui">{ui}</Layer>
+          <Layer $z="background" inert={modal}>
+            {background}
+          </Layer>
+          <Layer $z="sprites" inert={modal}>
+            {sprites}
+          </Layer>
+          <Layer $z="ui" inert={modal}>
+            {ui}
+          </Layer>
           <Layer $z="overlay">{overlay}</Layer>
         </>
       )}

@@ -24,17 +24,11 @@ export default function App({ rootStore }: AppProps) {
 }
 
 const Screens = observer(function Screens() {
-  const { ui, game, newGame, continueGame } = useStores();
+  const { ui } = useStores();
 
   switch (ui.screen) {
     case 'menu':
-      return (
-        <MainMenuPage
-          onNewGame={newGame}
-          onContinue={continueGame}
-          canContinue={game.canContinue}
-        />
-      );
+      return <MainMenuPage />;
     case 'game':
       return <GamePage />;
   }

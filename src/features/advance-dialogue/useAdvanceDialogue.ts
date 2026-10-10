@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from 'styled-components';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { useTypewriter } from '@/shared/lib/useTypewriter';
 import { isSystemControl } from './isSystemControl';
@@ -10,14 +9,14 @@ import { isSystemControl } from './isSystemControl';
  * one `requestAdvance`: while the line is still typing, show it whole; once it is whole, go on.
  * At a choice, going on means the player has read the prompt: only then do the options come out
  * (`choiceOptions`), so a prompt is never cut short. Clicks and keys aimed at system controls
- * belong to those controls.
+ * belong to those controls; while a window is open over the game, none reach it. Esc opens the
+ * settings — Ren'Py's game menu — and the way to the main menu is there.
  *
  * The line comes out translated: the store holds the Russian source, which is also the key of
  * its translation. Must be called from an `observer` component: it reads the line from the store.
  */
 export function useAdvanceDialogue() {
-  const { game, ui } = useStores();
-  const { timing } = useTheme();
+  const { game, ui, settings } = useStores();
   const { t } = useTranslation('story');
   const source = game.line;
   const line = source && {
@@ -25,7 +24,7 @@ export function useAdvanceDialogue() {
     text: t(source.text),
     speaker: source.speaker && { ...source.speaker, name: t(source.speaker.name) },
   };
-  const typewriter = useTypewriter(line?.text ?? '', timing.defaultTextCps, line?.key ?? '');
+  const typewriter = useTypewriter(line?.text ?? '', settings.textCps, line?.key ?? '');
 
   // The key of the prompt the player has clicked past. A choice without a prompt has nothing to
   // read: its options are out at once.
@@ -44,8 +43,12 @@ export function useAdvanceDialogue() {
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
+    // The open window handles its keys, Esc included (it closes it before this sees it).
+    if (ui.overlay) {
+      return;
+    }
     if (event.key === 'Escape') {
-      ui.showMenu();
+      ui.openSettings();
       return;
     }
     if (event.key !== ' ' && event.key !== 'Enter') {
@@ -76,7 +79,7 @@ export function useAdvanceDialogue() {
   }, []);
 
   const onStageClick = (event: MouseEvent<HTMLElement>) => {
-    if (!isSystemControl(event.target)) {
+    if (!ui.overlay && !isSystemControl(event.target)) {
       requestAdvance();
     }
   };

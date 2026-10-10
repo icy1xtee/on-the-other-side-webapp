@@ -29,7 +29,7 @@
 | FSD | по духу: слои есть, `index.ts` только где полезен, спец-линтера границ нет |
 | Тесты | Vitest, только чистая логика (движок, функции из `shared/lib`); UI не тестируем |
 | Сейв | снапшот состояния (позиция + переменные + кадр + аудио) + хэш программы сцены, валидация через `zod/mini`; один слот автосейва в `localStorage` (`ots:save:auto`) |
-| Аудио | `howler.js` — каналы, fade, обход autoplay-политики |
+| Аудио | `howler.js` в `shared/lib/audio.ts` — каналы `music` / `sound`, кроссфейд, `ifChanged`; музыка стартует из клика игрока |
 | Объём контента 0.1 | одна линейная сцена |
 | Объём движка 0.1 | `scene` / `show` / `hide` / `say` / `choice` / `jump` / `set` / `music` + переменные + save/load |
 | Дополнительно в 0.1 | typewriter со скипом по клику, горячие клавиши, настройки (громкость + скорость текста) |
@@ -123,18 +123,21 @@ recommended to `default` every variable in your game that is susceptible to chan
 ## Структура репозитория
 
 ```
-engine/       движок — отдельно от приложения: types, state, program, interpreter, save
-              (позже audio); свой tsconfig без DOM, публичный API — engine/index.ts
+engine/       движок — отдельно от приложения: types, state, program, interpreter, save;
+              свой tsconfig без DOM, публичный API — engine/index.ts. Звук — эффектами,
+              играет их приложение (shared/lib/audio.ts поверх howler)
 
 src/
   main.tsx    точка сборки: реестр сцен из content/ + движок → RootStore
-  app/        App, сторы (RootStore, UiStore, GameStore), ThemeProvider, глобальные стили,
-              горячие клавиши
+  app/        App, сторы (RootStore, UiStore, GameStore, SettingsStore), ThemeProvider,
+              глобальные стили
   pages/      MainMenuPage, GamePage
-  widgets/    Stage (композиция кадра), DialogueBox, SettingsOverlay
-  features/   advance-dialogue, make-choice, save-game, load-game, change-settings
-  entities/   background (ui + карта ассетов), character (ui + карта ассетов), save-slot
-  shared/     ui (Button, Slider), lib (useStageFit, useTypewriter, stores), config, types
+  widgets/    Stage, DialogueBox, GameHeader, SettingsOverlay, ConfirmDialog, NoticeToast
+  features/   advance-dialogue (и горячие клавиши), make-choice, change-settings,
+              switch-language
+  entities/   background, character (слои кадра)
+  shared/     ui (Button, PillButton, IconButton, Tooltip, Modal, Slider), lib (units, uiScale,
+              useTypewriter, storage, audio, stores), config, i18n
   content/    ids, speakers, variableDefaults, фабрики (dsl), scenes, __dev__/ тестовый контент
   assets/     backgrounds/, characters/, music/, sfx/
 ```
@@ -409,13 +412,15 @@ React 18, это дешевле, чем воевать со стилями.
 
 ### Этап 6. Аудио и настройки · [задача](./tasks/06-audio-settings.md)
 
-- `engine/audio` поверх **howler.js**: каналы `music` и `sound` (разделение из Ren'Py),
-  fade in/out, `ifChanged`. Howler сам разбирается с autoplay-политикой браузера — ручная
-  очередь на первый жест игрока, которая планировалась раньше, не нужна.
-- `SettingsStore` + оверлей по Esc: громкость по каналам, скорость текста в символах в
-  секунду, **язык** (переключатель RU / EN сейчас в меню и не запоминается); хранится
-  отдельным ключом от сейва. Флаг `isSettingsOpen` в `UiStore` появляется здесь (на этапе 1
-  его сознательно не заводили).
+- Аудио поверх **howler.js** — не в `engine/` (там нет DOM), а `shared/lib/audio.ts`: каналы
+  `music` и `sound` (разделение из Ren'Py), кроссфейд 500 мс, `ifChanged`. Движок отдаёт
+  эффекты, `GameStore` проигрывает их и восстанавливает музыку из сейва. Автоплей: музыка
+  стартует из клика, на отказ — повтор на `unlock` howler'а.
+- `SettingsStore` + окно настроек: громкость по каналам (общая × канал), скорость текста в
+  символах в секунду (0 — мгновенно), **язык**; хранится ключом `ots:settings`, отдельно от
+  сейва. Esc в игре и шестерёнка открывают окно (в нём и «Главное меню» — как game menu
+  Ren'Py), в меню — кнопка «Настройки». В `UiStore` — `overlay` (окно поверх экрана).
+- Подтверждение «Новой игры», когда есть что продолжать (решение ревью этапа 5).
 
 Готово, когда: музыка играет и не падает на политике автоплея, загрузка сейва внутри той же
 сцены не перезапускает трек, ползунки влияют на звук и скорость печати немедленно.

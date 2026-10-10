@@ -31,6 +31,11 @@ export const theme = {
     tooltipBackground: '#26292f',
     tooltipBorder: 'rgba(255, 255, 255, 0.08)',
     tooltipText: '#e8eaef',
+    // The settings and confirmation windows are not in the design either: drafted from the panel.
+    backdrop: 'rgba(5, 7, 11, 0.6)',
+    sliderTrack: 'rgba(255, 255, 255, 0.12)',
+    sliderThumb: '#eef0f4',
+    sliderRing: 'rgba(124, 195, 214, 0.3)',
   },
   surfaces: {
     stage:
@@ -63,6 +68,7 @@ export const theme = {
     dialogueSize: 16.5,
     buttonSize: 13,
     tooltipSize: 12,
+    labelSize: 14,
     logoSize: 11,
     captionSize: 10,
     lineHeight: 1.6,
@@ -139,6 +145,21 @@ export const theme = {
     paddingY: 5,
     radius: 7,
   },
+  /** A window over the screen — settings, confirmations. Draft in the dialogue panel's look. */
+  modal: {
+    width: 480,
+    padding: 28,
+    gap: 22,
+    rowGap: 14,
+    /** The settings' label and value columns; the slider takes what is left between them. */
+    labelWidth: 150,
+    valueWidth: 82,
+  },
+  slider: {
+    height: 18,
+    trackHeight: 4,
+    thumbSize: 14,
+  },
   zIndex: {
     background: 0,
     sprites: 10,
@@ -146,9 +167,8 @@ export const theme = {
     overlay: 30,
   },
   timing: {
+    /** Scene transitions and music fades — Ren'Py's default `dissolve`. */
     transitionMs: 500,
-    /** The design's typewriter speed; becomes a player setting in stage 6. */
-    defaultTextCps: 38,
     /** The prompt stepping back and the options coming in, one after another. */
     choiceRevealMs: 320,
     choiceStaggerMs: 70,
