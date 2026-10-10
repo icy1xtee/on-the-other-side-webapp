@@ -36,7 +36,8 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
   `vite.config.ts` `resolve.alias`. Vitest reads them from the Vite config.
 - Three TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
   (engine, **no DOM**), `tsconfig.node.json` (vite config).
-- `zod` arrives at stage 5, `howler` at stage 6 — don't add them earlier.
+- `zod` validates saves in `engine/save` — import **`zod/mini`** (classic `zod` added ~90 KB to
+  the bundle, mini ~26 KB). `howler` arrives at stage 6 — don't add it earlier.
 - Icons: **lucide-react**, named imports only (`import { Cog } from 'lucide-react'`) so the
   bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: inside `PillButton`
   an icon is sized in `em` from the button font (so it scales with the UI) and drawn at
@@ -77,8 +78,11 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
 src/app/stores  RootStore, UiStore, GameStore (MobX wrapper around the engine; resolves ids
-              into image URLs and names via `presentation`, so UI never sees content ids)
+              into image URLs and names via `presentation`, so UI never sees content ids;
+              autosaves on every line and choice, "Продолжить" resumes from it)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
+src/shared/lib/storage.ts  localStorage that never throws (blocked, private, full → no saves,
+              the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:`
 src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
               controls), Space/Enter; typewriter state; at a choice, the prompt is read before
               the options come out; Esc → menu

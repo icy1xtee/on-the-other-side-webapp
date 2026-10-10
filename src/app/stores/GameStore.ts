@@ -1,7 +1,11 @@
 import {
   advance,
   choose,
+  createSave,
+  parseSave,
   resolveText,
+  restoreSave,
+  run,
   startGame,
   type GameState,
   type Interaction,
@@ -11,6 +15,7 @@ import {
   type VarValue,
 } from '@engine';
 import { makeAutoObservable, observable } from 'mobx';
+import type { StorageSlot } from '@/shared/lib/storage';
 
 /** What turns the engine's ids into pictures and names. Supplied by content at boot. */
 export type Presentation = {
@@ -48,8 +53,12 @@ export type GameStoreOptions = {
   registry: SceneRegistry;
   variableDefaults: Readonly<Record<string, VarValue>>;
   presentation: Presentation;
+  /** Where the autosave lives. It may refuse to work: the game then plays on without saves. */
+  saveSlot: StorageSlot;
   /** Called when the script runs out — Ren'Py goes back to the main menu then. */
   onEnd: () => void;
+  /** Called once, the first time an autosave can't be written: the player should know. */
+  onSaveUnavailable?: () => void;
 };
 
 /**
@@ -57,21 +66,41 @@ export type GameStoreOptions = {
  * swaps it in whole (`observable.ref`), so observers react to the change of the snapshot rather
  * than to deep mutations, and a save is simply `state`. Computed views resolve ids into files and
  * names, so the UI never sees content ids.
+ *
+ * One save slot, written on every line and choice — Ren'Py's "saving occurs at the start of a
+ * statement". "Продолжить" resumes from it.
  */
 export class GameStore {
   state: GameState | null = null;
   interaction: Interaction | null = null;
+  /**
+   * Where "Продолжить" resumes: the last line or choice of this session, or the autosave found
+   * at boot. Kept in memory too, so the menu's Continue works even when storage doesn't.
+   */
+  resumable: GameState | null = null;
   /** Counts what the player has been shown, so a key changes even on coming back to a step. */
   private turn = 0;
+  private saveUnavailableReported = false;
   private readonly options: GameStoreOptions;
 
   constructor(options: GameStoreOptions) {
     this.options = options;
-    makeAutoObservable<this, 'options'>(
+    makeAutoObservable<this, 'options' | 'saveUnavailableReported'>(
       this,
-      { state: observable.ref, interaction: observable.ref, options: false },
+      {
+        state: observable.ref,
+        interaction: observable.ref,
+        resumable: observable.ref,
+        options: false,
+        saveUnavailableReported: false,
+      },
       { autoBind: true },
     );
+    this.resumable = this.readSave();
+  }
+
+  get canContinue(): boolean {
+    return this.resumable !== null;
   }
 
   /** Background image URL. */
@@ -127,6 +156,23 @@ export class GameStore {
     this.apply(startGame(this.options.registry, this.options.variableDefaults));
   }
 
+  /**
+   * Picks the game up where it was left: on the same line or choice, with the same stage, vars
+   * and music. Runs just that one statement — no replay. False when there is nothing to resume.
+   */
+  continueGame(): boolean {
+    if (!this.resumable) {
+      return false;
+    }
+    this.apply(run(this.resumable, this.options.registry));
+    return true;
+  }
+
+  /** Saves the game as it stands now — the Save button. False when storage refused. */
+  saveNow(): boolean {
+    return this.state !== null && this.interaction?.type !== 'end' && this.writeSave(this.state);
+  }
+
   /** The player clicked through the current line. Ignored when there is no line to pass. */
   advance() {
     if (!this.state || this.interaction?.type !== 'say') {
@@ -149,7 +195,38 @@ export class GameStore {
     this.interaction = result.interaction;
     // result.effects (music, sfx) are dropped until the audio layer arrives in stage 6.
     if (result.interaction.type === 'end') {
+      // The playthrough is over: nothing is left to continue.
+      this.resumable = null;
+      this.options.saveSlot.clear();
       this.options.onEnd();
+    } else if (!this.writeSave(result.state) && !this.saveUnavailableReported) {
+      this.saveUnavailableReported = true;
+      this.options.onSaveUnavailable?.();
     }
+  }
+
+  private writeSave(state: GameState): boolean {
+    this.resumable = state;
+    const save = createSave(state, this.options.registry, Date.now());
+    return this.options.saveSlot.write(JSON.stringify(save));
+  }
+
+  /** The autosave found at boot, if it can be resumed. A broken one is logged and ignored. */
+  private readSave(): GameState | null {
+    const text = this.options.saveSlot.read();
+    if (text === null) {
+      return null;
+    }
+    const parsed = parseSave(text);
+    if (!parsed.ok) {
+      console.warn(`Autosave ignored: ${parsed.reason}`);
+      return null;
+    }
+    const { registry, variableDefaults } = this.options;
+    const state = restoreSave(parsed.save, registry, variableDefaults);
+    if (!state) {
+      console.warn(`Autosave ignored: scene "${parsed.save.position.sceneId}" is gone`);
+    }
+    return state;
   }
 }

@@ -15,9 +15,9 @@ import { u } from '@/shared/lib/units';
 import { IconButton } from '@/shared/ui/IconButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
 
-// System controls from the design, as icons named by their tooltips. Save and load arrive in
-// stage 5; auto, skip and history are beyond 0.1 and are stubs until then; the choice history is
-// locked. Clicks on any of them never advance the dialogue.
+// System controls from the design, as icons named by their tooltips. What they do is up to the
+// page: in 0.1 Save saves at once; load, auto, skip and history are beyond 0.1 and are stubs;
+// the choice history is locked. Clicks on any of them never advance the dialogue.
 const SYSTEM_ACTIONS = [
   ['auto', Play],
   ['skip', FastForward],
@@ -42,7 +42,7 @@ type DialogueBoxProps = {
    * the prompt steps back — lifted, dimmed, cut to one line. No caret then: a click won't go on.
    */
   choice?: ReactNode;
-  /** A system button was pressed; none of them is wired to a feature yet. */
+  /** A system button was pressed. */
   onSystemAction: (action: SystemAction) => void;
 };
 

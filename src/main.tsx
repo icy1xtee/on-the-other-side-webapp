@@ -5,7 +5,9 @@ import '@/app/styles/fonts';
 import App from '@/app/App';
 import { RootStore } from '@/app/stores/RootStore';
 import { assets, scenes, speakers, startScene, storyEn, variableDefaults } from '@/content';
+import { STORAGE_KEYS } from '@/shared/config/storageKeys';
 import { initI18n } from '@/shared/i18n/i18n';
+import { createStorageSlot } from '@/shared/lib/storage';
 
 const rootElement = document.getElementById('root');
 
@@ -32,13 +34,16 @@ async function createDevRegistry(): Promise<SceneRegistry | null> {
   return createSceneRegistry({ ...scenes, ...devScenes }, start || devStartScene);
 }
 
-const registry =
-  (import.meta.env.DEV && (await createDevRegistry())) || createSceneRegistry(scenes, startScene);
+const devRegistry = import.meta.env.DEV ? await createDevRegistry() : null;
 
 const rootStore = new RootStore({
-  registry,
+  registry: devRegistry ?? createSceneRegistry(scenes, startScene),
   variableDefaults,
   presentation: { speakers, assets },
+  // A `?dev=` run keeps its own save: testing a scene doesn't overwrite the real playthrough.
+  saveSlot: createStorageSlot(
+    import.meta.env.DEV && devRegistry ? STORAGE_KEYS.devAutosave : STORAGE_KEYS.autosave,
+  ),
 });
 
 createRoot(rootElement).render(

@@ -6,8 +6,10 @@ The model follows Ren'Py; see `.claude/engine-research.md` for what was taken an
 
 ## Rules
 
-- No imports from `src/`, no React, no MobX — enforced by oxlint.
-- Checked by its own `tsconfig.engine.json` without DOM types: no browser APIs either.
+- No imports from `src/`, no React, no MobX — enforced by oxlint. The one dependency is
+  `zod/mini`, for reading saves.
+- Checked by its own `tsconfig.engine.json` without DOM types: no browser APIs either. Storage
+  is the app's business: the engine turns a state into a save and back, as plain data and text.
 - The app imports only the public API: `from '@engine'` (`index.ts`).
 - Every function returns a new state; nothing is mutated.
 - Tests sit next to the code (`*.test.ts`).
@@ -19,7 +21,11 @@ const registry = createSceneRegistry(scenes, 'intro'); // compiles scenes, check
 let result = startGame(registry, variableDefaults); // runs up to the first line or choice
 result = advance(result.state, registry); // the player clicked: next line
 result = choose(result.state, registry, 1); // the player picked option 1 of a choice
-result = run(savedState, registry); // loading a save: no replay needed
+
+const text = JSON.stringify(createSave(result.state, registry, Date.now())); // autosave
+const parsed = parseSave(text); // validated: { ok: true, save } or { ok: false, reason }
+const state = parsed.ok && restoreSave(parsed.save, registry, variableDefaults);
+if (state) result = run(state, registry); // loading runs the saved line or choice, no replay
 ```
 
 `result` is `{ state, interaction, effects }`:
@@ -49,12 +55,20 @@ result = run(savedState, registry); // loading a save: no replay needed
   player throws instead of hanging the page.
 - **Typing.** Every id is a plain `string` by default; content narrows them with
   `Command<ContentIds>`, so typos are compile errors while the engine stays generic-free.
+- **Saves** are snapshots, not replays — Ren'Py's "saving occurs at the start of a statement".
+  A save is the state on a line or a choice, plus the format `version` and the scene's
+  fingerprint (`sceneHash`, a hash of its compiled program). Loading checks the shape with
+  `zod/mini` and migrates older formats (a newer one is refused); vars follow Ren'Py's
+  `default` — the story's defaults first, then the saved values, minus the removed or retyped.
+  A scene changed since the save starts over with the saved vars; a scene that is gone leaves
+  nothing to resume.
 
 ## Layout
 
 ```
 types/        commands, ids, text
 state/        GameState, applyInstant (instant commands), effects
-program/      compileScene (flattening), sceneRegistry
+program/      compileScene (flattening), sceneRegistry, hashProgram (scene fingerprints)
 interpreter/  startGame, run, advance, choose, step limit
+save/         schema (format + zod), migrate, createSave / parseSave / restoreSave
 ```

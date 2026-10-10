@@ -2,7 +2,8 @@ import type { Ids, VarName, VarValue } from './ids';
 import type { LocalizedText } from './text';
 
 /** Fixed sprite positions, Ren'Py's `at left / center / right`: no pixels in the story. */
-export type SpritePosition = 'left' | 'center' | 'right';
+export const SPRITE_POSITIONS = ['left', 'center', 'right'] as const;
+export type SpritePosition = (typeof SPRITE_POSITIONS)[number];
 
 export type Command<I extends Ids = Ids> =
   // Instant: change the state, execution runs on.
