@@ -57,7 +57,11 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 The design comes from Claude Design: `.claude/ref/html/on-the-other-side-demo-layout-design.html`
 (git-ignored, a bundled page — unpack its template rather than reading it raw), demo art in
 `.claude/ref/images/`. Tokens live in `src/app/styles/theme.ts` as **design px** (the design's
-own numbers for a 1280×720 page); components never hard-code colours or sizes.
+own numbers for a 1280×720 page); components never hard-code colours or sizes. Screens the
+design lacks (choice, settings, confirmations) are drawn in its language — no separate designs
+are ordered for them for now.
+
+Target browser for 0.1: **Chrome**. Other browsers and platforms come later.
 
 The layout is fluid — no fixed frame, no bars. `Stage` sets the UI scale
 `min(width/1280, height/720)` (≥ 0.75) as `--u`; every size goes through `u(designPx)` from
