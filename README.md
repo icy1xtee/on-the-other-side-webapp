@@ -4,8 +4,9 @@ A visual novel built as a web application. React + TypeScript on Vite, MobX for 
 styled-components for styles. The story is written as typed TypeScript modules, and the engine
 grows out of what the game actually needs.
 
-**Status:** version 0.1 is in progress — the first playable build with a single linear scene.
-See [the 0.1 plan](.claude/plan-0.1.md) and [progress log](.claude/tasks/progress.md).
+**Status:** version 0.1 is closing — a playable demo with branching, saves, music and settings.
+See [the 0.1 plan](.claude/plan-0.1.md) and its [progress log](.claude/tasks/version-0.1/progress.md);
+next is [0.2](.claude/plan-0.2.md).
 
 ## Requirements
 
@@ -51,5 +52,7 @@ Most of these folders appear stage by stage; see the plan for the full picture.
 
 - [Project brief](.claude/project-brief.md) — what we build and why
 - [Plan 0.1](.claude/plan-0.1.md) — decisions, architecture, stages
+- [Plan 0.2](.claude/plan-0.2.md) — what comes next
 - [Engine research](.claude/engine-research.md) — what was taken from Ren'Py and ink, and why
-- [Stage tasks](.claude/tasks/) and the [progress log](.claude/tasks/progress.md)
+- Stage tasks and progress, per version: [0.1](.claude/tasks/version-0.1/),
+  [0.2](.claude/tasks/version-0.2/); [tech debt](.claude/tasks/tech-debt.md) across versions

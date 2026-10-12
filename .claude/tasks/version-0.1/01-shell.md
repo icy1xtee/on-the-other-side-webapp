@@ -6,8 +6,8 @@
 **Цель:** пустой кадр 16:9 с letterbox, тема с токенами, переход из главного меню в игру.
 
 **Зависимости:** [этап 0](./00-setup.md).
-**Контекст:** [plan-0.1.md → Этап 1](../plan-0.1.md),
-[engine-research.md → gui.rpy](../engine-research.md)
+**Контекст:** [plan-0.1.md → Этап 1](../../plan-0.1.md),
+[engine-research.md → gui.rpy](../../engine-research.md)
 
 ---
 

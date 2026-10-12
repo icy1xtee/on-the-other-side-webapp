@@ -1,14 +1,18 @@
 # CLAUDE.md
 
 Visual novel as a web app. Vision in [.claude/project-brief.md](.claude/project-brief.md),
-decisions and stages in [.claude/plan-0.1.md](.claude/plan-0.1.md), per-stage specs and the
-progress summary in [.claude/tasks/](.claude/tasks/). Read the plan before changing architecture.
+decisions and stages per version in `.claude/plan-<version>.md` —
+[0.1](.claude/plan-0.1.md) (closing), [0.2](.claude/plan-0.2.md) (next). Per-stage specs, the
+registry and the progress summary live per version in `.claude/tasks/version-<version>/`
+([0.1](.claude/tasks/version-0.1/), [0.2](.claude/tasks/version-0.2/)). Read the plan before
+changing architecture.
 
-**Start of any session:** read the current stage's folder in
-[.claude/tasks/task-registry/](.claude/tasks/task-registry/) — `context.md` (full picture,
-agreed decisions) and `progress.md` (branch, step statuses, journal, open questions).
-Consciously postponed compromises live in [.claude/tasks/tech-debt.md](.claude/tasks/tech-debt.md);
-add to it rather than leaving a TODO in code.
+**Start of any session:** read the current stage's folder in the current version's registry —
+now [.claude/tasks/version-0.1/task-registry/](.claude/tasks/version-0.1/task-registry/):
+`context.md` (full picture, agreed decisions) and `progress.md` (branch, step statuses,
+journal, open questions). Consciously postponed compromises, across versions, live in
+[.claude/tasks/tech-debt.md](.claude/tasks/tech-debt.md); add to it rather than leaving a TODO
+in code.
 
 ## Commands
 
@@ -143,10 +147,13 @@ line that stays on screen while the player chooses: `choice(say('mila', 'Куд�
 - After every step update the stage's registry `progress.md` (step status, journal entry);
   record new decisions in its `context.md`. Open questions are closed as we hit them, with the
   answer written into the registry.
-- At the end of a stage add a summary entry to
-  [.claude/tasks/progress.md](.claude/tasks/progress.md). If reality diverges from the plan,
-  update the plan too.
-- Design (palette, fonts, menu and dialogue look) comes from Claude Design. Until it arrives,
-  theme tokens hold deliberately rough draft values; design swaps values, not structure.
+- At the end of a stage add a summary entry to the version's `progress.md` — now
+  [.claude/tasks/version-0.1/progress.md](.claude/tasks/version-0.1/progress.md). If reality
+  diverges from the plan, update that version's plan too.
+- A new version gets its own `plan-<version>.md` in `.claude/` and its own
+  `.claude/tasks/version-<version>/` (stage specs, `task-registry/`, `progress.md`); decisions of
+  earlier versions stay in force unless the new plan says otherwise.
+- Design comes from Claude Design (see Design above); screens it lacks are drawn in its
+  language, values live in theme tokens.
 - Don't grow the engine ahead of the game: every abstraction in `engine/` must be needed by
   the demo scene now.
