@@ -5,7 +5,7 @@ import { u } from '@/shared/lib/units';
 import { IconButton } from '@/shared/ui/IconButton';
 
 type GameHeaderProps = {
-  /** Settings arrive in stage 6; until then the button is a stub. */
+  /** The cog: opens the settings window. */
   onSettings: () => void;
 };
 

@@ -6,8 +6,8 @@ import { useViewportSize } from '@/shared/lib/useViewportSize';
 import { u } from '@/shared/lib/units';
 
 type StageProps = {
-  background?: ReactNode;
-  sprites?: ReactNode;
+  /** The picture: background and characters, drawn together so they change together. */
+  scene?: ReactNode;
   ui?: ReactNode;
   overlay?: ReactNode;
   /**
@@ -22,10 +22,10 @@ type StageProps = {
 /**
  * The game fills the whole window — no bars. Sizes follow one UI scale, set here as the CSS
  * variable `--u` and read through `u()`; positions are percentages, so the layout reflows on
- * any aspect ratio. Layers bottom to top: background → sprites → UI → overlay (Ren'Py's master /
- * screens / overlay). A phone held upright is asked to turn: the game is made for landscape.
+ * any aspect ratio. Layers bottom to top: scene → UI → overlay (Ren'Py's master / screens /
+ * overlay). A phone held upright is asked to turn: the game is made for landscape.
  */
-export function Stage({ background, sprites, ui, overlay, modal = false, onClick }: StageProps) {
+export function Stage({ scene, ui, overlay, modal = false, onClick }: StageProps) {
   const { ref, size } = useViewportSize<HTMLDivElement>();
   const { t } = useTranslation();
 
@@ -43,11 +43,8 @@ export function Stage({ background, sprites, ui, overlay, modal = false, onClick
       )}
       {size && !needsLandscape(size.width, size.height) && (
         <>
-          <Layer $z="background" inert={modal}>
-            {background}
-          </Layer>
-          <Layer $z="sprites" inert={modal}>
-            {sprites}
+          <Layer $z="scene" inert={modal}>
+            {scene}
           </Layer>
           <Layer $z="ui" inert={modal}>
             {ui}

@@ -37,19 +37,8 @@ export type ChoiceOption<I extends Ids = Ids> = {
   then: readonly Command<I>[];
 };
 
-export type InteractionCommand<I extends Ids = Ids> = Extract<
-  Command<I>,
-  { type: 'say' | 'choice' }
->;
-
 /** Instant commands that only change the state; `jump` is control flow and lives apart. */
 export type StateCommand<I extends Ids = Ids> = Extract<
   Command<I>,
   { type: 'scene' | 'show' | 'hide' | 'music' | 'sfx' | 'set' }
 >;
-
-export function requiresInteraction<I extends Ids>(
-  command: Command<I>,
-): command is InteractionCommand<I> {
-  return command.type === 'say' || command.type === 'choice';
-}

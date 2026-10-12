@@ -10,8 +10,8 @@
 тот же персонаж в той же эмоции и позиции.
 
 **Зависимости:** [этап 4](./04-choices.md).
-**Контекст:** [plan-0.1.md → Сейв — это снапшот, а не реплей](../plan-0.1.md),
-[engine-research.md → Сейв и rollback](../engine-research.md)
+**Контекст:** [plan-0.1.md → Сейв — это снапшот, а не реплей](../../plan-0.1.md),
+[engine-research.md → Сейв и rollback](../../engine-research.md)
 
 ---
 

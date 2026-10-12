@@ -3,7 +3,6 @@ import {
   choose,
   createSave,
   parseSave,
-  resolveText,
   restoreSave,
   run,
   startGame,
@@ -142,7 +141,7 @@ export class GameStore {
       speaker: speaker
         ? { name: speakers[speaker]?.name ?? speaker, portrait: assets.portraits[speaker] }
         : null,
-      text: resolveText(text),
+      text,
     };
   }
 
@@ -155,7 +154,7 @@ export class GameStore {
       return null;
     }
     return this.interaction.options.flatMap((option, index) =>
-      option.available ? [{ index, text: resolveText(option.text) }] : [],
+      option.available ? [{ index, text: option.text }] : [],
     );
   }
 

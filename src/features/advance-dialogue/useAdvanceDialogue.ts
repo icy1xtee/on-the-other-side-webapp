@@ -8,9 +8,10 @@ import { isSystemControl } from './isSystemControl';
  * The single way the story moves on. A click anywhere on the stage, Space or Enter all lead to
  * one `requestAdvance`: while the line is still typing, show it whole; once it is whole, go on.
  * At a choice, going on means the player has read the prompt: only then do the options come out
- * (`choiceOptions`), so a prompt is never cut short. Clicks and keys aimed at system controls
- * belong to those controls; while a window is open over the game, none reach it. Esc opens the
- * settings — Ren'Py's game menu — and the way to the main menu is there.
+ * (`choiceOptions`), so a prompt is never cut short; keys 1–9 then pick an option. Clicks and
+ * keys aimed at system controls belong to those controls; while a window is open over the game,
+ * none reach it. Esc opens the settings — Ren'Py's game menu — and the way to the main menu is
+ * there.
  *
  * The line comes out translated: the store holds the Russian source, which is also the key of
  * its translation. Must be called from an `observer` component: it reads the line from the store.
@@ -31,6 +32,7 @@ export function useAdvanceDialogue() {
   const [readPrompt, setReadPrompt] = useState<string | null>(null);
   const options = game.choiceOptions;
   const promptPending = options !== null && source !== null && readPrompt !== source.key;
+  const choiceOptions = promptPending ? null : options;
 
   const requestAdvance = () => {
     if (typewriter.isRevealing) {
@@ -49,6 +51,15 @@ export function useAdvanceDialogue() {
     }
     if (event.key === 'Escape') {
       ui.openSettings();
+      return;
+    }
+    // 1–9 pick the options on screen, in the order shown — hidden ones don't count.
+    if (choiceOptions && /^[1-9]$/.test(event.key)) {
+      const option = choiceOptions[Number(event.key) - 1];
+      if (option && !event.repeat) {
+        event.preventDefault();
+        game.choose(option.index);
+      }
       return;
     }
     if (event.key !== ' ' && event.key !== 'Enter') {
@@ -88,7 +99,7 @@ export function useAdvanceDialogue() {
     line,
     visibleText: typewriter.visibleText,
     /** The options to pick from, once the prompt has been read; null otherwise. */
-    choiceOptions: promptPending ? null : options,
+    choiceOptions,
     onStageClick,
   };
 }

@@ -1,4 +1,4 @@
-import { advance, choose, createSceneRegistry, resolveText, startGame } from '@engine';
+import { advance, choose, createSceneRegistry, startGame } from '@engine';
 import { describe, expect, it } from 'vitest';
 import { scenes } from '../scenes';
 import { variableDefaults } from '../variables';
@@ -15,13 +15,13 @@ function play(picks: readonly string[]) {
   for (let guard = 0; result.interaction.type !== 'end' && guard < 100; guard++) {
     const { interaction } = result;
     if (interaction.type === 'say') {
-      lines.push(resolveText(interaction.text));
+      lines.push(interaction.text);
       result = advance(result.state, registry);
       continue;
     }
     const pick = queue.shift();
     const visible = interaction.options.filter((option) => option.available);
-    offered.push(visible.map((option) => resolveText(option.text)));
+    offered.push(visible.map((option) => option.text));
     const index = interaction.options.findIndex(
       (option) => option.available && option.text === pick,
     );
