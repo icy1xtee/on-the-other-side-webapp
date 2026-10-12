@@ -1,6 +1,5 @@
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitch } from '@/features/switch-language/LanguageSwitch';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { SettingsGroup, SliderRow } from './SettingsRows';
 
@@ -13,7 +12,7 @@ const INSTANT_NOTCH = TEXT_SPEED.max + 1;
 
 const VOLUME = { min: 0, max: 1, step: 0.05 } as const;
 
-/** Volumes, text speed and language. Every change applies and is kept at once. */
+/** Volumes and text speed. Every change applies and is kept at once. */
 export const SettingsControls = observer(function SettingsControls() {
   const { settings } = useStores();
   const { t } = useTranslation();
@@ -58,9 +57,6 @@ export const SettingsControls = observer(function SettingsControls() {
           max={INSTANT_NOTCH}
           step={1}
         />
-      </SettingsGroup>
-      <SettingsGroup title={t('settings.language')}>
-        <LanguageSwitch />
       </SettingsGroup>
     </>
   );

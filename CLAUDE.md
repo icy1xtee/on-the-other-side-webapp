@@ -100,8 +100,11 @@ src/shared/lib/storage.ts  localStorage that never throws (blocked, private, ful
 src/shared/lib/audio.ts  the only file that knows howler
 src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
               controls), Space/Enter; typewriter state; at a choice, the prompt is read before
-              the options come out; Esc → the settings window (with "Главное меню" in it);
-              nothing reaches the game while a window is open
+              the options come out, then keys 1–9 pick one; Esc → the settings window (with
+              "Главное меню" in it); nothing reaches the game while a window is open
+src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
+              `dissolve` (0.5 s) whenever the frame changes — the engine already gathers every
+              change up to the next line into one state, so it is one transition
 src/features/change-settings  the settings' controls; widgets/settings-overlay puts them in a
               `shared/ui/Modal` (Esc and a click outside close it, caught before the game)
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the

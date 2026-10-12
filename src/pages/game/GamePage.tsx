@@ -1,13 +1,12 @@
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { BackgroundLayer } from '@/entities/background/ui/BackgroundLayer';
-import { CharacterLayer } from '@/entities/character/ui/CharacterLayer';
 import { useAdvanceDialogue } from '@/features/advance-dialogue/useAdvanceDialogue';
 import { ChoiceList } from '@/features/make-choice/ChoiceList';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { DialogueBox, type SystemAction } from '@/widgets/dialogue-box/DialogueBox';
 import { GameHeader } from '@/widgets/game-header/GameHeader';
 import { NoticeToast } from '@/widgets/notice/NoticeToast';
+import { SceneView } from '@/widgets/scene-view/SceneView';
 import { SettingsOverlay } from '@/widgets/settings-overlay/SettingsOverlay';
 import { Stage } from '@/widgets/stage/Stage';
 
@@ -37,8 +36,7 @@ export const GamePage = observer(function GamePage() {
     <Stage
       modal={ui.overlay !== null}
       onClick={onStageClick}
-      background={<BackgroundLayer src={game.background} />}
-      sprites={<CharacterLayer sprites={game.sprites} />}
+      scene={<SceneView background={game.background} sprites={game.sprites} />}
       ui={
         <>
           <GameHeader onSettings={ui.openSettings} />

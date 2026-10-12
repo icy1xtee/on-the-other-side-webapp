@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { requiresInteraction, type Command } from './command';
+import type { Command } from './command';
 
 type NarrowIds = {
   scene: 'intro' | 'forest';
@@ -11,18 +11,6 @@ type NarrowIds = {
   sfx: 'door';
   vars: { trust: number };
 };
-
-describe('requiresInteraction', () => {
-  it('is true for lines and choices', () => {
-    expect(requiresInteraction({ type: 'say', text: 'Привет' })).toBe(true);
-    expect(requiresInteraction({ type: 'choice', options: [] })).toBe(true);
-  });
-
-  it('is false for instant commands', () => {
-    expect(requiresInteraction({ type: 'scene', background: 'room' })).toBe(false);
-    expect(requiresInteraction({ type: 'jump', scene: 'forest' })).toBe(false);
-  });
-});
 
 describe('Command typing', () => {
   it('lets content-narrowed commands, conditions included, pass as plain engine commands', () => {

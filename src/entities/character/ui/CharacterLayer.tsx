@@ -2,7 +2,7 @@ import type { SpritePosition } from '@engine';
 import styled from 'styled-components';
 import { u } from '@/shared/lib/units';
 
-type Sprite = {
+export type CharacterSprite = {
   tag: string;
   src: string | undefined;
   at: SpritePosition;
@@ -10,7 +10,7 @@ type Sprite = {
 
 type CharacterLayerProps = {
   /** In z-order: later sprites are drawn on top. */
-  sprites: readonly Sprite[];
+  sprites: readonly CharacterSprite[];
 };
 
 /**

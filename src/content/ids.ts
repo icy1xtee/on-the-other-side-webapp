@@ -1,6 +1,6 @@
-// Every id the story may use. Lists rather than file maps: asset files are attached in stage 3.
-// Scene ids are declared here, not derived from the scenes, because scenes refer to each other
-// through `goTo` and a type can't be inferred from itself.
+// Every id the story may use. Lists rather than file maps: the files behind the ids are in
+// assets.ts. Scene ids are declared here, not derived from the scenes, because scenes refer to
+// each other through `goTo` and a type can't be inferred from itself.
 
 export const sceneIds = ['intro', 'walk'] as const;
 export const backgroundIds = ['room', 'street'] as const;

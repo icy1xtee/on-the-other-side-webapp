@@ -70,7 +70,6 @@ export const theme = {
     tooltipSize: 12,
     labelSize: 14,
     logoSize: 11,
-    captionSize: 10,
     lineHeight: 1.6,
   },
   header: {
@@ -161,8 +160,8 @@ export const theme = {
     thumbSize: 14,
   },
   zIndex: {
-    background: 0,
-    sprites: 10,
+    /** Background and characters together: they dissolve as one frame. */
+    scene: 0,
     ui: 20,
     overlay: 30,
   },

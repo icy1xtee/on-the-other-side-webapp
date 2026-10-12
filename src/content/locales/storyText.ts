@@ -12,16 +12,14 @@ export function collectStoryText(
 
   const visit = (commands: readonly Command[]) => {
     for (const command of commands) {
-      if (command.type === 'say' && typeof command.text === 'string') {
+      if (command.type === 'say') {
         texts.add(command.text);
       } else if (command.type === 'choice') {
-        if (typeof command.prompt?.text === 'string') {
+        if (command.prompt) {
           texts.add(command.prompt.text);
         }
         for (const option of command.options) {
-          if (typeof option.text === 'string') {
-            texts.add(option.text);
-          }
+          texts.add(option.text);
           visit(option.then);
         }
       }
