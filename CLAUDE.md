@@ -2,13 +2,13 @@
 
 Visual novel as a web app. Vision in [.claude/project-brief.md](.claude/project-brief.md),
 decisions and stages per version in `.claude/plan-<version>.md` —
-[0.1](.claude/plan-0.1.md) (closing), [0.2](.claude/plan-0.2.md) (next). Per-stage specs, the
+[0.1](.claude/plan-0.1.md) (closed), [0.2](.claude/plan-0.2.md) (current). Per-stage specs, the
 registry and the progress summary live per version in `.claude/tasks/version-<version>/`
 ([0.1](.claude/tasks/version-0.1/), [0.2](.claude/tasks/version-0.2/)). Read the plan before
 changing architecture.
 
 **Start of any session:** read the current stage's folder in the current version's registry —
-now [.claude/tasks/version-0.1/task-registry/](.claude/tasks/version-0.1/task-registry/):
+now [.claude/tasks/version-0.2/task-registry/](.claude/tasks/version-0.2/task-registry/):
 `context.md` (full picture, agreed decisions) and `progress.md` (branch, step statuses,
 journal, open questions). Consciously postponed compromises, across versions, live in
 [.claude/tasks/tech-debt.md](.claude/tasks/tech-debt.md); add to it rather than leaving a TODO
@@ -58,12 +58,14 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 
 ## Design
 
-The design comes from Claude Design: `.claude/ref/html/on-the-other-side-demo-layout-design.html`
-(git-ignored, a bundled page — unpack its template rather than reading it raw), demo art in
-`.claude/ref/images/`. Tokens live in `src/app/styles/theme.ts` as **design px** (the design's
-own numbers for a 1280×720 page); components never hard-code colours or sizes. Screens the
-design lacks (choice, settings, confirmations) are drawn in its language — no separate designs
-are ordered for them for now.
+The design comes from Claude Design: `.claude/ref/layout-design/` (git-ignored, a Claude Design
+export — one `*.dc.html` per screen: `Reader`, `Main Menu`, `Game Menu`, `Confirm Dialog`;
+`Reader v1` and `Settings Modal` are superseded drafts; inline styles and a small component
+script, readable as is), demo art in `.claude/ref/images/`. The code still
+follows the 0.1 design until 0.2's stage 0 adopts these. Tokens live in
+`src/app/styles/theme.ts` as **design px** (the design's own numbers for a 1280×720 page);
+components never hard-code colours or sizes. Screens for 0.2 are ordered from Claude Design; a
+screen the design lacks is drawn in its language.
 
 Target browser for 0.1: **Chrome**. Other browsers and platforms come later.
 
@@ -143,20 +145,21 @@ line that stays on screen while the player chooses: `choice(say('mila', 'Куд�
 - Small atomic steps: one verifiable thing per step, then stop and report what to check.
 - **Pavel commits**, one commit per step — never leave the project broken between steps. Don't
   commit unless asked; propose a commit message instead.
-- Git: one branch per stage (`feat/stage-N-<name>`), one commit per step inside it, PR into
-  `main` at the end of the stage.
+- Git: one branch per stage (`feat/<version>-stage-N-<name>`, e.g. `feat/0.2-stage-0-design`;
+  0.1 used `feat/stage-N-<name>`), one commit per step inside it, PR into `main` at the end of
+  the stage.
 - Anything that shapes structure or later code is asked as a question **before** implementing.
   Small reversible choices: decide and name them in the report.
 - After every step update the stage's registry `progress.md` (step status, journal entry);
   record new decisions in its `context.md`. Open questions are closed as we hit them, with the
   answer written into the registry.
 - At the end of a stage add a summary entry to the version's `progress.md` — now
-  [.claude/tasks/version-0.1/progress.md](.claude/tasks/version-0.1/progress.md). If reality
+  [.claude/tasks/version-0.2/progress.md](.claude/tasks/version-0.2/progress.md). If reality
   diverges from the plan, update that version's plan too.
 - A new version gets its own `plan-<version>.md` in `.claude/` and its own
   `.claude/tasks/version-<version>/` (stage specs, `task-registry/`, `progress.md`); decisions of
   earlier versions stay in force unless the new plan says otherwise.
-- Design comes from Claude Design (see Design above); screens it lacks are drawn in its
+- Design comes from Claude Design (see Design above); a screen it lacks is drawn in its
   language, values live in theme tokens.
 - Don't grow the engine ahead of the game: every abstraction in `engine/` must be needed by
   the demo scene now.
