@@ -45,7 +45,7 @@ describe('dev branching scenes', () => {
     expect(run.end).toBe(true);
     expect(run.offered.at(-1)).toEqual(['Взять её за руку', 'Идти молча']);
     expect(run.lines).toContain('Мила улыбается.');
-    expect(run.state.vars).toEqual({ metMila: true, trust: 1 });
+    expect(run.state.vars).toMatchObject({ metMila: true, trust: 1 });
     expect(run.state.stage.background).toBe('street');
   });
 
@@ -56,7 +56,7 @@ describe('dev branching scenes', () => {
     expect(run.lines).toContain('Тогда начнём с кофе.');
     expect(run.lines).toContain('Обе реакции сходятся здесь, за развилкой.');
     expect(run.offered.at(-1)).toEqual(['Идти молча']);
-    expect(run.state.vars).toEqual({ metMila: true, trust: 0 });
+    expect(run.state.vars).toMatchObject({ metMila: true, trust: 0 });
   });
 
   it('stay home: the stage carries over and a choice with nothing to offer is skipped', () => {

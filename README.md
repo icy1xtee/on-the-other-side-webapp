@@ -14,6 +14,7 @@ next is [0.2](.claude/plan-0.2.md).
 
 - Node.js **24.12.0** (pinned in `.nvmrc` and `engines`; `npm install` refuses other versions)
 - npm
+- For the e2e tests, Chromium for Playwright, once: `npx playwright install chromium`
 
 ## Getting started
 
@@ -25,17 +26,18 @@ npm run dev
 
 ## Scripts
 
-| Command                | What it does                       |
-| ---------------------- | ---------------------------------- |
-| `npm run dev`          | Dev server with HMR                |
-| `npm run build`        | Type-check and build into `dist/`  |
-| `npm run preview`      | Serve the production build locally |
-| `npm run typecheck`    | TypeScript project check, no emit  |
-| `npm run lint`         | oxlint                             |
-| `npm run format`       | Prettier, rewrites files           |
-| `npm run format:check` | Prettier, check only               |
-| `npm test`             | Vitest, single run                 |
-| `npm run test:watch`   | Vitest in watch mode               |
+| Command                | What it does                                             |
+| ---------------------- | -------------------------------------------------------- |
+| `npm run dev`          | Dev server with HMR                                      |
+| `npm run build`        | Type-check and build into `dist/`                        |
+| `npm run preview`      | Serve the production build locally                       |
+| `npm run typecheck`    | TypeScript project check, no emit                        |
+| `npm run lint`         | oxlint                                                   |
+| `npm run format`       | Prettier, rewrites files                                 |
+| `npm run format:check` | Prettier, check only                                     |
+| `npm test`             | Vitest, single run                                       |
+| `npm run test:watch`   | Vitest in watch mode                                     |
+| `npm run e2e`          | Build, then the Playwright smoke tests against the build |
 
 ## Project layout
 
@@ -48,6 +50,7 @@ src/
   content/   scenes, ids, speakers, variables, assets, translations — the only place that
              knows the plot; __dev__/ holds test scenes (`?dev=branching` on the dev server)
   assets/    backgrounds, characters, portraits, music
+e2e/         Playwright smoke tests: a playthrough, the choice, Continue after a reload
 ```
 
 ## Playing

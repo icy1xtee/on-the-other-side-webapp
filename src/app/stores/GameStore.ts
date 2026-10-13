@@ -1,196 +1,97 @@
 import {
   advance,
   choose,
-  createSave,
-  parseSave,
-  restoreSave,
   run,
   startGame,
-  type Effect,
   type GameState,
   type Interaction,
   type RunResult,
   type SceneRegistry,
-  type SpritePosition,
   type VarValue,
 } from '@engine';
 import { makeAutoObservable, observable } from 'mobx';
 import type { AudioOutput } from '@/shared/lib/audio';
-import type { StorageSlot } from '@/shared/lib/storage';
-
-/** What turns the engine's ids into pictures, names and sounds. Supplied by content at boot. */
-export type Presentation = {
-  speakers: Readonly<Record<string, { name: string }>>;
-  /** What the player calls each scene. A scene without one (a dev scene) has no title. */
-  sceneTitles: Readonly<Partial<Record<string, string>>>;
-  assets: {
-    backgrounds: Readonly<Record<string, string>>;
-    characters: Readonly<Record<string, Readonly<Record<string, string>>>>;
-    portraits: Readonly<Record<string, string>>;
-    music: Readonly<Record<string, string>>;
-    /** May lack a sound: one without a file plays nothing. */
-    sounds: Readonly<Partial<Record<string, string>>>;
-  };
-};
-
-export type SpriteView = {
-  tag: string;
-  src: string | undefined;
-  at: SpritePosition;
-};
-
-/** A picture of the scene: the background and the characters over it, as files. */
-export type FrameView = {
-  background: string | undefined;
-  sprites: SpriteView[];
-};
-
-export type LineView = {
-  /**
-   * Changes with every line, even when two lines read the same or the story comes back to the
-   * same step: restarts the typewriter and the reading of a choice's prompt.
-   */
-  key: string;
-  speaker: { name: string; portrait: string | undefined } | null;
-  text: string;
-};
-
-export type OptionView = {
-  /** The option's place among all the choice's options, hidden ones included: what `choose` takes. */
-  index: number;
-  text: string;
-};
+import { playEffects } from './audioEffects';
+import {
+  frameView,
+  lineView,
+  optionViews,
+  quotedLine,
+  sceneTitle,
+  type FrameView,
+  type LineView,
+  type OptionView,
+  type Presentation,
+  type QuotedLine,
+} from './presentation';
+import type { SaveStore } from './SaveStore';
 
 /** What "Продолжить" leads back to, for the menu's card. Text is the story's source, untranslated. */
 export type ContinuePreview = {
   frame: FrameView;
   /** The line on screen there; null if the save stands on a choice without a prompt. */
-  line: { speaker: string | null; text: string } | null;
+  line: QuotedLine | null;
   /** Milliseconds since the epoch. */
   savedAt: number;
-};
-
-/** A game to continue: the autosave's state and what the save says about itself. */
-type Resumable = {
-  state: GameState;
-  savedAt: number;
-  playTime: number;
 };
 
 export type GameStoreOptions = {
   registry: SceneRegistry;
   variableDefaults: Readonly<Record<string, VarValue>>;
   presentation: Presentation;
-  /** Where the autosave lives. It may refuse to work: the game then plays on without saves. */
-  saveSlot: StorageSlot;
   /** Plays the music and sounds the story asks for. */
   audio: AudioOutput;
+  /** Autosaves every line and choice, and holds the game to continue. */
+  saves: SaveStore;
   /** Called when the script runs out — Ren'Py goes back to the main menu then. */
   onEnd: () => void;
-  /** Called once, the first time an autosave can't be written: the player should know. */
-  onSaveUnavailable?: () => void;
-  /** The clock, in milliseconds since the epoch; tests pass their own. */
-  now?: () => number;
 };
 
 /**
- * MobX wrapper around the pure engine. The engine returns a new state on every step; the store
- * swaps it in whole (`observable.ref`), so observers react to the change of the snapshot rather
- * than to deep mutations, and a save is simply `state`. Computed views resolve ids into files and
- * names, so the UI never sees content ids.
- *
- * One save slot, written on every line and choice — Ren'Py's "saving occurs at the start of a
- * statement". "Продолжить" resumes from it.
- *
- * It also keeps the play time: a clock the game screen starts while the player is in the game
- * and stops when they leave it, hide the tab or open the game menu — Ren'Py's game runtime
- * doesn't count the menus either.
+ * The game loop: a MobX wrapper around the pure engine. The engine returns a new state on every
+ * step; the store swaps it in whole (`observable.ref`), so observers react to the change of the
+ * snapshot rather than to deep mutations, and a save is simply `state`. Its views turn ids into
+ * files and names (`presentation.ts`), so the UI never sees content ids; what the engine met on
+ * the way is played (`audioEffects.ts`) and the line reached is autosaved (`SaveStore`).
  */
 export class GameStore {
   state: GameState | null = null;
   interaction: Interaction | null = null;
-  /**
-   * Where "Продолжить" resumes: the last line or choice of this session, or the autosave found
-   * at boot. Kept in memory too, so the menu's Continue works even when storage doesn't.
-   */
-  resumable: Resumable | null = null;
-  /** Play time banked before the clock last started. */
-  private playedMs = 0;
-  /** When the clock started, or null while it stands. */
-  private clockStartedAt: number | null = null;
   /** Counts what the player has been shown, so a key changes even on coming back to a step. */
   private turn = 0;
-  private saveUnavailableReported = false;
   private readonly options: GameStoreOptions;
-  private readonly now: () => number;
 
   constructor(options: GameStoreOptions) {
     this.options = options;
-    this.now = options.now ?? Date.now;
-    makeAutoObservable<this, 'options' | 'now' | 'saveUnavailableReported'>(
+    makeAutoObservable<this, 'options'>(
       this,
-      {
-        state: observable.ref,
-        interaction: observable.ref,
-        resumable: observable.ref,
-        options: false,
-        now: false,
-        saveUnavailableReported: false,
-      },
+      { state: observable.ref, interaction: observable.ref, options: false },
       { autoBind: true },
     );
-    this.resumable = this.readSave();
   }
 
-  get canContinue(): boolean {
-    return this.resumable !== null;
-  }
-
-  /** Background image URL. */
-  get background(): string | undefined {
-    return this.state ? this.frameOf(this.state).background : undefined;
-  }
-
-  /** Sprites in z-order, with their image URLs. */
-  get sprites(): SpriteView[] {
-    return this.state ? this.frameOf(this.state).sprites : [];
+  /** The background and the sprites in z-order, as files. */
+  get frame(): FrameView {
+    return frameView(this.state, this.options.presentation);
   }
 
   /** The title of the scene being played, untranslated; empty for a scene without one. */
   get sceneTitle(): string {
-    const sceneId = this.state?.position.sceneId;
-    return (sceneId && this.options.presentation.sceneTitles[sceneId]) || '';
+    return sceneTitle(this.state, this.options.presentation);
   }
 
   /** The line on screen: the one the player is reading, or the prompt of the current choice. */
   get line(): LineView | null {
-    const shown = shownLine(this.interaction);
-    if (!this.state || !shown) {
+    if (!this.state) {
       return null;
     }
-    const { speakers, assets } = this.options.presentation;
-    const { speaker, text } = shown;
     const { sceneId, step } = this.state.position;
-    return {
-      key: `${sceneId}:${step}:${this.turn}`,
-      speaker: speaker
-        ? { name: speakers[speaker]?.name ?? speaker, portrait: assets.portraits[speaker] }
-        : null,
-      text,
-    };
+    return lineView(this.interaction, `${sceneId}:${step}:${this.turn}`, this.options.presentation);
   }
 
-  /**
-   * The options of the current choice the player may pick, or null when there is no choice.
-   * Options ruled out by their condition are left out — hidden, as in Ren'Py.
-   */
+  /** The options of the current choice the player may pick, or null when there is no choice. */
   get choiceOptions(): OptionView[] | null {
-    if (this.interaction?.type !== 'choice') {
-      return null;
-    }
-    return this.interaction.options.flatMap((option, index) =>
-      option.available ? [{ index, text: option.text }] : [],
-    );
+    return optionViews(this.interaction);
   }
 
   /**
@@ -198,49 +99,20 @@ export class GameStore {
    * saved state — the same `run` Continue does, without its effects.
    */
   get continuePreview(): ContinuePreview | null {
-    const resumable = this.resumable;
+    const resumable = this.options.saves.resumable;
     if (!resumable) {
       return null;
     }
-    const shown = shownLine(run(resumable.state, this.options.registry).interaction);
-    const { speakers } = this.options.presentation;
+    const { registry, presentation } = this.options;
     return {
-      frame: this.frameOf(resumable.state),
-      line: shown && {
-        speaker: shown.speaker ? (speakers[shown.speaker]?.name ?? shown.speaker) : null,
-        text: shown.text,
-      },
+      frame: frameView(resumable.state, presentation),
+      line: quotedLine(run(resumable.state, registry).interaction, presentation),
       savedAt: resumable.savedAt,
     };
   }
 
-  /** Milliseconds of play in this game so far, the running stretch included. */
-  playTime(now = this.now()): number {
-    return this.playedMs + (this.clockStartedAt === null ? 0 : now - this.clockStartedAt);
-  }
-
-  /** The player is in the game: time counts. */
-  startClock() {
-    this.clockStartedAt ??= this.now();
-  }
-
-  /**
-   * The player left the game, hid the tab or opened the game menu: time stops. The autosave
-   * takes the time played on the last line, which no line or choice has saved yet.
-   */
-  stopClock() {
-    if (this.clockStartedAt === null) {
-      return;
-    }
-    this.playedMs = this.playTime();
-    this.clockStartedAt = null;
-    if (this.state && this.interaction && this.interaction.type !== 'end') {
-      this.writeSave(this.state);
-    }
-  }
-
   newGame() {
-    this.restartClock(0);
+    this.options.saves.startPlaying(0);
     this.apply(startGame(this.options.registry, this.options.variableDefaults));
   }
 
@@ -249,21 +121,18 @@ export class GameStore {
    * and music. Runs just that one statement — no replay. False when there is nothing to resume.
    */
   continueGame(): boolean {
-    if (!this.resumable) {
+    const { saves, registry, audio, presentation } = this.options;
+    const resumed = saves.resumable;
+    if (!resumed) {
       return false;
     }
-    const resumed = this.resumable;
-    this.restartClock(resumed.playTime);
-    this.apply(run(resumed.state, this.options.registry));
+    saves.startPlaying(resumed.playTime);
+    this.apply(run(resumed.state, registry));
     // Nothing was re-executed, so nothing re-played: the music comes back from the state.
     // `ifChanged`: coming back from the menu to the same scene, the track isn't restarted.
-    this.options.audio.playMusic(this.musicSrc(resumed.state.audio.music), { ifChanged: true });
+    const music = resumed.state.audio.music;
+    playEffects([{ type: 'music', asset: music, ifChanged: true }], audio, presentation.assets);
     return true;
-  }
-
-  /** Saves the game as it stands now — the Save button. False when storage refused. */
-  saveNow(): boolean {
-    return this.state !== null && this.interaction?.type !== 'end' && this.writeSave(this.state);
   }
 
   /** The player clicked through the current line. Ignored when there is no line to pass. */
@@ -282,93 +151,17 @@ export class GameStore {
     this.apply(choose(this.state, this.options.registry, index));
   }
 
-  /** Another game's time from here on; a running clock keeps running. */
-  private restartClock(playedMs: number) {
-    this.playedMs = playedMs;
-    if (this.clockStartedAt !== null) {
-      this.clockStartedAt = this.now();
-    }
-  }
-
   private apply(result: RunResult) {
+    const { saves, audio, presentation, onEnd } = this.options;
     this.turn += 1;
     this.state = result.state;
     this.interaction = result.interaction;
-    result.effects.forEach(this.play);
+    playEffects(result.effects, audio, presentation.assets);
     if (result.interaction.type === 'end') {
-      // The playthrough is over: nothing is left to continue.
-      this.resumable = null;
-      this.options.saveSlot.clear();
-      this.options.onEnd();
-    } else if (!this.writeSave(result.state) && !this.saveUnavailableReported) {
-      this.saveUnavailableReported = true;
-      this.options.onSaveUnavailable?.();
+      saves.forget();
+      onEnd();
+    } else {
+      saves.autosave(result.state);
     }
   }
-
-  private play(effect: Effect) {
-    const { audio, presentation } = this.options;
-    if (effect.type === 'music') {
-      audio.playMusic(this.musicSrc(effect.asset), { ifChanged: effect.ifChanged });
-      return;
-    }
-    const src = presentation.assets.sounds[effect.asset];
-    if (src) {
-      audio.playSound(src);
-    }
-  }
-
-  private frameOf(state: GameState): FrameView {
-    const { backgrounds, characters } = this.options.presentation.assets;
-    const { background, sprites } = state.stage;
-    return {
-      background: background ? backgrounds[background] : undefined,
-      sprites: sprites.map(({ tag, emotion, at }) => ({
-        tag,
-        at,
-        src: characters[tag]?.[emotion],
-      })),
-    };
-  }
-
-  /** A track without a file plays as silence rather than leaving the last one on. */
-  private musicSrc(id: string | null): string | null {
-    return id === null ? null : (this.options.presentation.assets.music[id] ?? null);
-  }
-
-  private writeSave(state: GameState): boolean {
-    const savedAt = this.now();
-    const playTime = this.playTime(savedAt);
-    this.resumable = { state, savedAt, playTime };
-    const save = createSave(state, this.options.registry, { savedAt, playTime });
-    return this.options.saveSlot.write(JSON.stringify(save));
-  }
-
-  /** The autosave found at boot, if it can be resumed. A broken one is logged and ignored. */
-  private readSave(): Resumable | null {
-    const text = this.options.saveSlot.read();
-    if (text === null) {
-      return null;
-    }
-    const parsed = parseSave(text);
-    if (!parsed.ok) {
-      console.warn(`Autosave ignored: ${parsed.reason}`);
-      return null;
-    }
-    const { registry, variableDefaults } = this.options;
-    const state = restoreSave(parsed.save, registry, variableDefaults);
-    if (!state) {
-      console.warn(`Autosave ignored: scene "${parsed.save.position.sceneId}" is gone`);
-      return null;
-    }
-    return { state, savedAt: parsed.save.savedAt, playTime: parsed.save.playTime ?? 0 };
-  }
-}
-
-/** The line an interaction shows: a spoken or narrated line, or the prompt of a choice. */
-function shownLine(interaction: Interaction | null) {
-  if (interaction?.type === 'say') {
-    return interaction;
-  }
-  return interaction?.type === 'choice' ? (interaction.prompt ?? null) : null;
 }

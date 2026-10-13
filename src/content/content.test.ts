@@ -1,32 +1,55 @@
-import { advance, createSceneRegistry, startGame, type Interaction } from '@engine';
+import { advance, choose, createSceneRegistry, startGame } from '@engine';
 import { describe, expect, it } from 'vitest';
 import { choice, goTo, narrate, option, say, scene, set, show } from './dsl';
 import { scenes, startScene, variableDefaults } from './index';
 
 describe('demo content', () => {
+  const registry = createSceneRegistry(scenes, startScene);
+
+  /** Clicks through the demo, giving `answer` at its one choice: what the player went through. */
+  function playThrough(answer: number) {
+    let result = startGame(registry, variableDefaults);
+    const lines: string[] = [];
+    const visited: string[] = [];
+    for (let guard = 0; guard < 200 && result.interaction.type !== 'end'; guard += 1) {
+      const { interaction, state } = result;
+      if (visited.at(-1) !== state.position.sceneId) {
+        visited.push(state.position.sceneId);
+      }
+      if (interaction.type === 'say') {
+        lines.push(interaction.text);
+        result = advance(state, registry);
+      } else if (interaction.type === 'choice') {
+        lines.push(interaction.prompt?.text ?? '');
+        result = choose(state, registry, answer);
+      }
+    }
+    return { result, lines, visited };
+  }
+
   it('boots: every scene compiles and every goTo leads somewhere', () => {
     expect(() => createSceneRegistry(scenes, startScene)).not.toThrow();
   });
 
-  it('plays from the start to the end of the game by clicking through', () => {
-    const registry = createSceneRegistry(scenes, startScene);
-    let result = startGame(registry, variableDefaults);
-    const seen: Interaction[] = [result.interaction];
+  it.each([
+    [0, 'opened'],
+    [1, 'asked'],
+    [2, 'silent'],
+  ])(
+    'plays to the end with answer %i at the door, the branches meeting on the street',
+    (answer, doorAnswer) => {
+      const { result, lines, visited } = playThrough(answer);
 
-    while (result.interaction.type === 'say' && seen.length < 100) {
-      result = advance(result.state, registry);
-      seen.push(result.interaction);
-    }
-
-    expect(result.interaction).toEqual({ type: 'end' });
-    expect(seen.filter((interaction) => interaction.type === 'say')).toHaveLength(7);
-    expect(result.state.position.sceneId).toBe('walk');
-    expect(result.state.vars).toEqual({ metMila: true, trust: 1 });
-    expect(result.state.stage).toEqual({
-      background: 'street',
-      sprites: [{ tag: 'mila', emotion: 'sad', at: 'right' }],
-    });
-  });
+      expect(result.interaction).toEqual({ type: 'end' });
+      expect(visited).toEqual(['intro', 'walk', 'home']);
+      expect(lines).toHaveLength(30);
+      expect(result.state.vars).toEqual({ metMila: false, trust: 0, doorAnswer });
+      expect(result.state.stage).toEqual({
+        background: 'room',
+        sprites: [{ tag: 'mila', emotion: 'happy', at: 'left' }],
+      });
+    },
+  );
 });
 
 describe('factories', () => {
@@ -40,7 +63,7 @@ describe('factories', () => {
 
   it('keeps a condition typed with the story vars', () => {
     const trusting = option('Довериться', [], { when: (vars) => vars.trust > 2 });
-    expect(trusting.when?.({ metMila: true, trust: 3 })).toBe(true);
+    expect(trusting.when?.({ ...variableDefaults, trust: 3 })).toBe(true);
   });
 
   it('rejects typos and mismatches at compile time', () => {

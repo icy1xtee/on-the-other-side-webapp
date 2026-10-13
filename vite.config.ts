@@ -28,7 +28,8 @@ export default defineConfig({
     },
   },
   test: {
-    // Only pure logic is tested (engine, content, stores, lib helpers); UI and JSX are not.
+    // Unit tests cover pure logic (engine, content, stores, lib helpers); the UI is covered by the
+    // Playwright smoke tests in e2e/, which Vitest leaves alone.
     include: ['engine/**/*.test.ts', 'src/**/*.test.ts'],
   },
 });

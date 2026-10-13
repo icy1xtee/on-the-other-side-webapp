@@ -6,6 +6,7 @@ import type { SceneId } from './ids';
  * makes a scene without a title a compile error.
  */
 export const sceneTitles = {
-  intro: 'Утро в комнате',
+  intro: 'Стук в дверь',
   walk: 'Тихая улица',
+  home: 'Снова дома',
 } satisfies Record<SceneId, string>;

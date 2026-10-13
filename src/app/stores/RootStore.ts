@@ -1,8 +1,13 @@
+import type { SceneRegistry, VarValue } from '@engine';
 import i18next from 'i18next';
 import { autorun, reaction } from 'mobx';
-import { GameStore, type GameStoreOptions } from '@/app/stores/GameStore';
+import { GameStore } from '@/app/stores/GameStore';
+import type { Presentation } from '@/app/stores/presentation';
+import { ReadingStore } from '@/app/stores/ReadingStore';
+import { SaveStore } from '@/app/stores/SaveStore';
 import { SettingsStore } from '@/app/stores/SettingsStore';
 import { UiStore } from '@/app/stores/UiStore';
+import type { AudioOutput } from '@/shared/lib/audio';
 import type { StorageSlot } from '@/shared/lib/storage';
 
 /** The main menu's art: a background over the whole window and a character beside the menu. */
@@ -11,35 +16,65 @@ export type MenuArt = {
   character: string;
 };
 
-export type RootStoreOptions = Omit<GameStoreOptions, 'onEnd' | 'onSaveUnavailable'> & {
+export type RootStoreOptions = {
+  registry: SceneRegistry;
+  variableDefaults: Readonly<Record<string, VarValue>>;
+  presentation: Presentation;
+  audio: AudioOutput;
+  /** Where the autosave lives. It may refuse to work: the game then plays on without saves. */
+  saveSlot: StorageSlot;
   /** Where the settings live — apart from the save: they outlive every playthrough. */
   settingsSlot: StorageSlot;
   menuArt: MenuArt;
+  /** The clock, in milliseconds since the epoch; tests pass their own. */
+  now?: () => number;
 };
 
 /** Owns every store and the actions that span several of them. */
 export class RootStore {
   readonly ui = new UiStore();
   readonly settings: SettingsStore;
+  readonly saves: SaveStore;
   readonly game: GameStore;
+  readonly reading: ReadingStore;
   readonly menuArt: MenuArt;
   private readonly options: RootStoreOptions;
 
   constructor(options: RootStoreOptions) {
-    const { settingsSlot, menuArt, ...gameOptions } = options;
+    const {
+      registry,
+      variableDefaults,
+      presentation,
+      audio,
+      saveSlot,
+      settingsSlot,
+      menuArt,
+      now,
+    } = options;
     this.options = options;
     this.menuArt = menuArt;
     this.settings = new SettingsStore(settingsSlot);
-    this.game = new GameStore({
-      ...gameOptions,
-      onEnd: this.toMainMenu,
+    this.saves = new SaveStore({
+      registry,
+      variableDefaults,
+      slot: saveSlot,
+      now,
       // Say it once: in a private window the player would otherwise trust a save that isn't there.
-      onSaveUnavailable: () => this.ui.showNotice(i18next.t('notice.autosaveUnavailable')),
+      onUnavailable: () => this.ui.showNotice(i18next.t('notice.autosaveUnavailable')),
     });
+    this.game = new GameStore({
+      registry,
+      variableDefaults,
+      presentation,
+      audio,
+      saves: this.saves,
+      onEnd: this.toMainMenu,
+    });
+    this.reading = new ReadingStore(this.game, this.settings);
 
     // Settings apply at once: the volumes while a slider moves, the language on a click.
-    autorun(() => options.audio.setVolumes(this.settings.volumes));
-    autorun(() => options.audio.setMuted(this.settings.muted));
+    autorun(() => audio.setVolumes(this.settings.volumes));
+    autorun(() => audio.setMuted(this.settings.muted));
     reaction(
       () => this.settings.language,
       (language) => void i18next.changeLanguage(language),
@@ -51,7 +86,7 @@ export class RootStore {
    * overwrites the autosave.
    */
   requestNewGame = () => {
-    if (this.game.canContinue) {
+    if (this.saves.canContinue) {
       this.ui.confirmNewGame();
     } else {
       this.newGame();

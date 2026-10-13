@@ -23,9 +23,12 @@ npm run typecheck     # tsc -b
 npm run lint          # oxlint
 npm run format        # prettier --write .   (format:check for CI-style check)
 npm test              # vitest run
+npm run e2e           # build, then the Playwright smoke tests against `vite preview`
 ```
 
-Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `build` all pass.
+Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `build` all pass;
+before handing over a stage, `e2e` too. CI (`.github/workflows/ci.yml`) runs all of them on every
+PR into `main` and on `main` itself.
 
 ## Stack notes
 
@@ -38,8 +41,14 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 - Aliases: `@/*` → `src/*`, `@engine` → `engine/index.ts` (exact match, public API only).
   Defined in two places that must stay in sync: `tsconfig.app.json` `paths` and
   `vite.config.ts` `resolve.alias`. Vitest reads them from the Vite config.
-- Three TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
-  (engine, **no DOM**), `tsconfig.node.json` (vite config).
+- Four TS projects under `tsc -b`: `tsconfig.app.json` (src, DOM), `tsconfig.engine.json`
+  (engine, **no DOM**), `tsconfig.node.json` (vite config), `tsconfig.e2e.json` (e2e tests and
+  the Playwright config: Node, plus DOM for the callbacks that run in the page).
+- e2e: **Playwright**, Chromium only (`npx playwright install chromium` once per machine). The
+  tests run against the production build on port 4180 and find things by role and text, never
+  by pixels. They store instant text in `ots:settings` before the page loads, so no test waits
+  for the typewriter — except the ones that test it. The demo text they rely on is in
+  `e2e/game.ts`, the one file to update when the demo changes.
 - `zod` validates saves in `engine/save` and settings — import **`zod/mini`** (classic `zod`
   added ~90 KB to the bundle, mini ~26 KB).
 - Audio: **howler.js**, touched only by `shared/lib/audio.ts` (`AudioOutput`: channels `music`
@@ -100,22 +109,25 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
               imports. Read engine/README.md before touching it.
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/app/stores  RootStore (+ the main menu's art), UiStore (screen, the `overlay` over it — the
-              game menu on one of its sections, or a confirmation — and notices), GameStore
-              (MobX wrapper around the engine; resolves ids into image URLs, names, scene titles
-              and audio via `presentation`, so UI never sees content ids; plays the engine's
-              audio effects; autosaves on every line and choice, "Продолжить" resumes from it;
-              keeps the play time — a clock the game screen runs while the player is there),
-              SettingsStore (volumes, mute, text speed and size, panel opacity, language —
-              `ots:settings`, apart from the save)
+src/app/stores  RootStore (wires the stores; the main menu's art), UiStore (screen, the
+              `overlay` over it — the game menu on one of its sections, or a confirmation — and
+              notices), GameStore (the game loop: MobX wrapper around the engine — new game,
+              continue, advance, choose; its views go through `presentation.ts`, pure functions
+              that turn ids into image URLs, names and scene titles, so UI never sees content
+              ids; the engine's audio effects are played by `audioEffects.ts`), SaveStore (the
+              autosave written on every line and choice, "Продолжить" resumes from it; the play
+              time — a clock the game screen runs while the player is there), ReadingStore (how
+              far the line on screen is read: typed out or not, the prompt read or not; the one
+              `requestAdvance`, keys 1–9), SettingsStore (volumes, mute, text speed and size,
+              panel opacity, language — `ots:settings`, apart from the save)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
 src/shared/lib/storage.ts  localStorage that never throws (blocked, private, full → no saves,
               the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:`
 src/shared/lib/audio.ts  the only file that knows howler
-src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
-              controls), Space/Enter; typewriter state; at a choice, the prompt is read before
-              the options come out, then keys 1–9 pick one; Esc → the game menu; nothing
-              reaches the game while a window is open
+src/features/advance-dialogue  input into ReadingStore's commands: click on the frame (not on
+              system controls), Space/Enter → requestAdvance; keys 1–9; Esc → the game menu;
+              nothing reaches the game while a window is open. Runs the typewriter
+              (shared/lib/useTypewriter, rAF), which tells the store when a line has typed out
 src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
               it in a box of any shape (the Continue card; save slots later)
 src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
@@ -135,6 +147,9 @@ src/content   the story: ids, speakers, variables, assets (files behind ids; the
 src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
               dev server; `?dev=<scene>` starts from any scene. Left out of production builds
 src/assets    art and music files (WebP / SVG / MP3)
+e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
+              (click and digit), Continue after a reload, reading at a speed
+.github/workflows/ci.yml  CI on PRs into main: the checks above in one job, e2e in another
 ```
 
 Enforced by `no-restricted-imports` in `.oxlintrc.json`: `engine/` can't import `src/`,
@@ -152,8 +167,9 @@ line that stays on screen while the player chooses: `choice(say('mila', 'Куд�
 - Prettier: `printWidth: 100`, single quotes, semicolons, trailing commas, `arrowParens: always`.
   `.claude/` is excluded from formatting on purpose.
 - Tests: Vitest, next to the code (`engine/**/*.test.ts`, `src/**/*.test.ts`), pure logic
-  only (engine, content, stores, lib helpers). UI is not tested. Compile-time guarantees are
-  tested with `@ts-expect-error`.
+  (engine, content, stores, presentation, lib helpers). Components have no unit tests: the UI is
+  checked by e2e of the main paths (`e2e/`). Compile-time guarantees are tested with
+  `@ts-expect-error`.
 - When something in the engine is ambiguous, follow Ren'Py
   ([.claude/engine-research.md](.claude/engine-research.md)).
 - Commits follow **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `test:`,
