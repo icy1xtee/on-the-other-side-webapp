@@ -15,7 +15,7 @@
 | # | Этап | Статус | Файл |
 |---|---|---|---|
 | 0 | Новые макеты | готов | [00-design.md](./00-design.md) · [реестр](./task-registry/00-design/) |
-| 1 | Фундамент | на проверке | [01-foundation.md](./01-foundation.md) · [реестр](./task-registry/01-foundation/) |
+| 1 | Фундамент | готов | [01-foundation.md](./01-foundation.md) · [реестр](./task-registry/01-foundation/) |
 | 2 | Auto и Skip | не начат | [02-auto-skip.md](./02-auto-skip.md) · [реестр](./task-registry/02-auto-skip/) |
 | 3 | History и rollback | не начат | [03-history-rollback.md](./03-history-rollback.md) · [реестр](./task-registry/03-history-rollback/) |
 | 4 | Слоты | не начат | [04-save-slots.md](./04-save-slots.md) · [реестр](./task-registry/04-save-slots/) |
@@ -29,7 +29,7 @@
 
 Записи добавляются в начало.
 
-### Этап 1 — Фундамент · 2026-10-13 · на проверке
+### Этап 1 — Фундамент · 2026-10-13 · готов
 
 Ветка `feat/0.2-stage-1-foundation`, одним заходом; подробности — в
 [реестре](./task-registry/01-foundation/).
@@ -44,7 +44,8 @@
   представления, аудио-эффекты отдельной функцией; `ReadingStore` — состояние чтения, хук тонкий.
 
 **Проверено:** `lint`, `typecheck`, `test` (150), `format:check`, `build`, `e2e` (6) — до и после
-рефакторинга. GitHub Actions запустится на PR этапа. Спорные моменты (9) — в реестре, к ревью.
+рефакторинга. Спорные моменты (9) Павел принял все; `npm audit fix` (Павел) — уязвимостей нет.
+Коммит `48ae4ff`; первый прогон GitHub Actions — на PR этапа.
 
 ### Этап 0 — Новые макеты · 2026-10-13 · готов
 
