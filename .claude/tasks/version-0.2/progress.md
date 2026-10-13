@@ -16,7 +16,7 @@
 |---|---|---|---|
 | 0 | Новые макеты | готов | [00-design.md](./00-design.md) · [реестр](./task-registry/00-design/) |
 | 1 | Фундамент | готов | [01-foundation.md](./01-foundation.md) · [реестр](./task-registry/01-foundation/) |
-| 2 | Auto и Skip | на проверке | [02-auto-skip.md](./02-auto-skip.md) · [реестр](./task-registry/02-auto-skip/) |
+| 2 | Auto и Skip | готов | [02-auto-skip.md](./02-auto-skip.md) · [реестр](./task-registry/02-auto-skip/) |
 | 3 | History и rollback | не начат | [03-history-rollback.md](./03-history-rollback.md) · [реестр](./task-registry/03-history-rollback/) |
 | 4 | Слоты | не начат | [04-save-slots.md](./04-save-slots.md) · [реестр](./task-registry/04-save-slots/) |
 | 5 | Анимации | не начат | [05-animations.md](./05-animations.md) · [реестр](./task-registry/05-animations/) |
@@ -29,7 +29,7 @@
 
 Записи добавляются в начало.
 
-### Этап 2 — Auto и Skip · 2026-10-13 · на проверке
+### Этап 2 — Auto и Skip · 2026-10-13 · готов
 
 Ветка `feat/0.2-stage-2-auto-skip`, одним заходом; подробности — в
 [реестре](./task-registry/02-auto-skip/).
@@ -45,7 +45,8 @@
   «Пропуск» в настройках.
 
 **Проверено:** `lint`, `typecheck`, `test` (173), `format:check`, `build`, `e2e` (9). Спорные
-моменты (9) — в реестре, к ревью.
+моменты (9) Павел принял все; коммит `17dcea3`. На ревью — пожелание к этапу 7: окно
+«Управление» с клавишами (решение 36 в плане, заказ 5 в [design-requests.md](./design-requests.md)).
 
 ### Этап 1 — Фундамент · 2026-10-13 · готов
 

@@ -10,8 +10,9 @@
 | 2 | Сохранение и загрузка | 6 ручных слотов + автосейв (только загрузка) | 4 |
 | 3 | История | Лог реплик и выборов | 3 |
 | 4 | Состояния панели и диалоги | «Назад», Auto / Skip включены, развилка, подтверждения, уведомления | 2–4 |
+| 5 | Управление | Какие клавиши и кнопки мыши чем управляют, клавиши нарисованы клавишами | 7 |
 
-Статус: заказано 2026-10-12, сборка — в `.claude/ref/layout-design/`. Claude Design собрал игровое меню одним файлом (`Game Menu`: сохранение, загрузка, история, настройки), окно подтверждения — отдельно (`Confirm Dialog`), состояния панели, индикатор и уведомления — в `Reader`.
+Статус: 1–4 заказаны 2026-10-12, сборка — в `.claude/ref/layout-design/`; 5 добавлен 2026-10-13 (ревью этапа 2), не заказан. Claude Design собрал игровое меню одним файлом (`Game Menu`: сохранение, загрузка, история, настройки), окно подтверждения — отдельно (`Confirm Dialog`), состояния панели, индикатор и уведомления — в `Reader`.
 
 ---
 
@@ -137,4 +138,29 @@ Dialogs (Settings Modal language, small):
   «Не удалось сохранить: хранилище браузера недоступно».
 
 Props: autoOn, skipOn, choiceState, narration, confirmOpen, toast.
+```
+
+## 5. Управление
+
+```text
+Controls: a new section «Управление» of the existing Game Menu (Game Menu.dc.html), in its
+rail under «Настройки» — what Ren'Py calls the Help screen. Same window, header and row
+styles as the Settings section.
+
+It shows which keys and mouse actions do what, grouped:
+- Чтение: Click, Space, Enter — next line; a click while a line types shows it whole.
+- Развилка: 1–9 — pick the option in that place.
+- Режимы: Tab — Skip on / off; Ctrl (hold) — skip while held; the Auto button.
+- Откат: Wheel up and Page Up — back; Wheel down and Page Down — forward.
+- Окна: Esc — game menu / close a window.
+
+Keys are drawn as keycaps, not text: small rounded caps in the Geist Mono style of the meta
+lines, with a subtle depth (a bottom edge), «Пробел» wider than the rest, «1–9» as a pair of
+caps with a dash. Mouse actions get their own small mouse glyph with the button or the wheel
+highlighted in teal.
+
+Live state: while the window is open, the key the player presses lights up on its keycap
+(teal glow, like a lit choice option) — they can try the controls without touching the game.
+
+Props: pressedKey (null or a key name).
 ```
