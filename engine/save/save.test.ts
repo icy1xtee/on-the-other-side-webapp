@@ -32,7 +32,9 @@ const registry = createSceneRegistry(scenes, 'intro');
 
 /** A save the way the app keeps it: through JSON, back from text. */
 function roundTrip(state: GameState, from = registry) {
-  const parsed = parseSave(JSON.stringify(createSave(state, from, 1_700_000_000_000)));
+  const parsed = parseSave(
+    JSON.stringify(createSave(state, from, { savedAt: 1_700_000_000_000, playTime: 0 })),
+  );
   if (!parsed.ok) {
     throw new Error(parsed.reason);
   }
@@ -68,14 +70,27 @@ describe('save and load', () => {
   });
 
   it('writes what the slot needs to know', () => {
-    const save = createSave(startGame(registry, defaults).state, registry, 42);
+    const save = createSave(startGame(registry, defaults).state, registry, {
+      savedAt: 42,
+      playTime: 61_000,
+    });
     expect(save).toMatchObject({
       version: SAVE_VERSION,
       position: { sceneId: 'intro', step: 5 },
       sceneHash: registry.getSceneHash('intro'),
       audio: { music: 'theme' },
       savedAt: 42,
+      playTime: 61_000,
     });
+  });
+
+  it('reads a save made before play time was kept: it has none', () => {
+    const { playTime: _, ...older } = createSave(startGame(registry, defaults).state, registry, {
+      savedAt: 1,
+      playTime: 5,
+    });
+    const parsed = parseSave(JSON.stringify(older));
+    expect(parsed.ok && parsed.save.playTime).toBeUndefined();
   });
 });
 
@@ -130,7 +145,8 @@ describe('a story changed under the save', () => {
 });
 
 describe('parseSave', () => {
-  const valid = () => createSave(startGame(registry, defaults).state, registry, 1);
+  const valid = () =>
+    createSave(startGame(registry, defaults).state, registry, { savedAt: 1, playTime: 0 });
 
   it('refuses text that is not JSON', () => {
     expect(parseSave('{oops')).toEqual({ ok: false, reason: 'not JSON' });

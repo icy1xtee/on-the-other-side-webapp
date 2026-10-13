@@ -30,3 +30,9 @@ export const assets = {
   // No sound files yet: `door` plays nothing until one arrives.
   sounds: {} satisfies Partial<Record<SfxId, string>>,
 };
+
+/** The main menu's key art: the room and Mila until real key art is drawn. */
+export const menuArt = {
+  background: roomBackground,
+  character: mila,
+};

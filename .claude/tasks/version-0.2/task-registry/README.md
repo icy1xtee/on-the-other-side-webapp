@@ -20,7 +20,7 @@
 
 | Папка | Этап | Статус |
 |---|---|---|
-| [00-design](./00-design/) | Новые макеты | не начат |
+| [00-design](./00-design/) | Новые макеты | на проверке |
 | [01-foundation](./01-foundation/) | Фундамент | не начат |
 | [02-auto-skip](./02-auto-skip/) | Auto и Skip | не начат |
 | [03-history-rollback](./03-history-rollback/) | History и rollback | не начат |

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, readSettings, SettingsStore } from './SettingsStore';
+import { MIN_WINDOW_OPACITY } from '@/shared/config/settings';
 import { memorySlot } from './testDoubles';
 
 describe('readSettings', () => {
@@ -14,15 +15,17 @@ describe('readSettings', () => {
       masterVolume: 0.4,
       musicVolume: 7,
       soundVolume: 'loud',
+      muted: true,
       textCps: 0,
+      textSize: 'huge',
+      windowOpacity: 0.1,
       language: 'de',
     });
     expect(readSettings(stored)).toEqual({
+      ...DEFAULT_SETTINGS,
       masterVolume: 0.4,
-      musicVolume: DEFAULT_SETTINGS.musicVolume,
-      soundVolume: DEFAULT_SETTINGS.soundVolume,
+      muted: true,
       textCps: 0,
-      language: DEFAULT_SETTINGS.language,
     });
   });
 });
@@ -57,6 +60,23 @@ describe('SettingsStore', () => {
     settings.setSoundVolume(-1);
 
     expect(settings.volumes).toMatchObject({ master: 1, sound: 0 });
+  });
+
+  it('keeps the panel readable: its opacity never drops below the minimum', () => {
+    const settings = new SettingsStore(memorySlot());
+    settings.setWindowOpacity(0);
+    expect(settings.windowOpacity).toBe(MIN_WINDOW_OPACITY);
+  });
+
+  it('goes back to the defaults on reset, and keeps them', () => {
+    const slot = memorySlot();
+    const settings = new SettingsStore(slot);
+    settings.setMuted(true);
+    settings.setTextSize('large');
+    settings.setLanguage('en');
+    settings.reset();
+
+    expect(new SettingsStore(memorySlot(slot.value))).toMatchObject(DEFAULT_SETTINGS);
   });
 
   it('works on when storage refuses', () => {

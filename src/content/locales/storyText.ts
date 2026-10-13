@@ -2,13 +2,17 @@ import type { Command } from '@engine';
 
 /**
  * Every piece of story text a player can see: lines, choice prompts and options (nested blocks
- * included) and speaker names. These are the keys of the story translations.
+ * included), speaker names and scene titles. These are the keys of the story translations.
  */
 export function collectStoryText(
   scenes: Readonly<Record<string, readonly Command[]>>,
   speakers: Readonly<Record<string, { name: string }>>,
+  sceneTitles: Readonly<Record<string, string>> = {},
 ): Set<string> {
-  const texts = new Set<string>(Object.values(speakers).map((speaker) => speaker.name));
+  const texts = new Set<string>([
+    ...Object.values(speakers).map((speaker) => speaker.name),
+    ...Object.values(sceneTitles),
+  ]);
 
   const visit = (commands: readonly Command[]) => {
     for (const command of commands) {

@@ -6,11 +6,23 @@ import { SAVE_VERSION, saveSchema, type SaveData } from './schema';
 
 export type ParsedSave = { ok: true; save: SaveData } | { ok: false; reason: string };
 
+/** What a save says about itself rather than about the game: when it was made, after how long. */
+export type SaveMeta = {
+  /** Milliseconds since the epoch. */
+  savedAt: number;
+  /** Milliseconds of play so far. */
+  playTime: number;
+};
+
 /**
  * A save of the game as it stands. Taken on a line or a choice — Ren'Py: "saving occurs at the
  * start of a statement" — so loading it runs that one statement and nothing before it.
  */
-export function createSave(state: GameState, registry: SceneRegistry, savedAt: number): SaveData {
+export function createSave(
+  state: GameState,
+  registry: SceneRegistry,
+  { savedAt, playTime }: SaveMeta,
+): SaveData {
   const { position, vars, stage, audio } = state;
   return {
     version: SAVE_VERSION,
@@ -23,6 +35,7 @@ export function createSave(state: GameState, registry: SceneRegistry, savedAt: n
     },
     audio: { ...audio },
     savedAt,
+    playTime,
   };
 }
 

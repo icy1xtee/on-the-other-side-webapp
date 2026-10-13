@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { BackgroundLayer } from '@/entities/background/ui/BackgroundLayer';
-import { CharacterLayer, type CharacterSprite } from '@/entities/character/ui/CharacterLayer';
-
-/** What the scene shows at one moment: a background and the characters over it. */
-type Frame = {
-  background: string | undefined;
-  sprites: readonly CharacterSprite[];
-};
+import { StageFrame, type Frame } from '@/entities/frame/ui/Frame';
 
 type Shown = { key: string; frame: Frame };
 
@@ -33,7 +26,9 @@ export function SceneView({ background, sprites }: Frame) {
 
   return (
     <Scene>
-      <FrameView frame={shown.frame} />
+      <Layer>
+        <StageFrame frame={shown.frame} />
+      </Layer>
       {leaving && (
         <Leaving
           key={leaving === 'black' ? 'black' : leaving.key}
@@ -44,19 +39,10 @@ export function SceneView({ background, sprites }: Frame) {
             }
           }}
         >
-          {leaving !== 'black' && <FrameView frame={leaving.frame} />}
+          {leaving !== 'black' && <StageFrame frame={leaving.frame} />}
         </Leaving>
       )}
     </Scene>
-  );
-}
-
-function FrameView({ frame }: { frame: Frame }) {
-  return (
-    <Layer>
-      <BackgroundLayer src={frame.background} />
-      <CharacterLayer sprites={frame.sprites} />
-    </Layer>
   );
 }
 

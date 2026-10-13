@@ -47,11 +47,18 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
   `GameStore` plays them. Music starts from a click (New game, Continue) — the autoplay policy
   allows it after a gesture.
 - Icons: **lucide-react**, named imports only (`import { Cog } from 'lucide-react'`) so the
-  bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: inside `PillButton`
-  an icon is sized in `em` from the button font (so it scales with the UI) and drawn at
-  `theme.icons.strokeWidth`. Icons are decorative by default (`aria-hidden`). An icon-only
-  button is `shared/ui/IconButton`: its `label` is both the `aria-label` and the hover tooltip
-  (`shared/ui/Tooltip`, pure CSS) — no `title` attributes.
+  bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: the button holding an
+  icon sizes it through `u()` and draws it at `theme.icons.strokeWidth`. Icons are decorative by
+  default (`aria-hidden`). An icon-only button is `shared/ui/RevealButton`: its `label` is the
+  `aria-label` and opens on the icon's left on hover and keyboard focus, pushing the buttons
+  beside it. In a `RevealGroup` (a row anchored on its right) the label stays open while the
+  pointer is in the row, so a moved button never slips from under it. No `title` attributes;
+  a cut line shows whole in `shared/ui/Tooltip`.
+- Buttons are styled from `shared/ui/PlainButton` (no look of its own; a mouse click doesn't
+  take focus, so Space keeps advancing the story); worded window buttons are
+  `shared/ui/ActionButton` (`secondary` / `primary` / `danger`).
+- Lint: oxlint's `only-export-components` knows MobX's `observer` (`customHOCs`), so a file
+  may hold several `observer` components.
 - Fonts: Geist / Geist Mono from `@fontsource/geist` and `@fontsource/geist-mono` (the Google
   Fonts builds, **with Cyrillic** — `@fontsource/geist-sans` is Latin-only). Import the
   per-weight CSS (`400.css`); the per-subset files lack `unicode-range` and can't be combined.
@@ -61,13 +68,15 @@ Before reporting a step as done: `lint`, `typecheck`, `test`, `format:check`, `b
 The design comes from Claude Design: `.claude/ref/layout-design/` (git-ignored, a Claude Design
 export — one `*.dc.html` per screen: `Reader`, `Main Menu`, `Game Menu`, `Confirm Dialog`;
 `Reader v1` and `Settings Modal` are superseded drafts; inline styles and a small component
-script, readable as is), demo art in `.claude/ref/images/`. The code still
-follows the 0.1 design until 0.2's stage 0 adopts these. Tokens live in
+script, readable as is), demo art in `.claude/ref/images/`. Deliberate departures from it are
+listed in plan-0.2 (icon buttons, no scene controls in the corner, no option numbers) and the
+stage registries (0.1's namebox over the panel's edge, the stepping-back prompt, a panel that
+never changes size). Tokens live in
 `src/app/styles/theme.ts` as **design px** (the design's own numbers for a 1280×720 page);
 components never hard-code colours or sizes. Screens for 0.2 are ordered from Claude Design; a
 screen the design lacks is drawn in its language.
 
-Target browser for 0.1: **Chrome**. Other browsers and platforms come later.
+Target browser: **Chrome** (0.1 and 0.2). Other browsers and platforms come later.
 
 The layout is fluid — no fixed frame, no bars. `Stage` sets the UI scale
 `min(width/1280, height/720)` (≥ 0.75) as `--u`; every size goes through `u(designPx)` from
@@ -91,28 +100,38 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
               imports. Read engine/README.md before touching it.
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/app/stores  RootStore, UiStore (screen, the `overlay` window over it, notices), GameStore
-              (MobX wrapper around the engine; resolves ids into image URLs, names and audio
-              via `presentation`, so UI never sees content ids; plays the engine's audio
-              effects; autosaves on every line and choice, "Продолжить" resumes from it),
-              SettingsStore (volumes, text speed, language — `ots:settings`, apart from the save)
+src/app/stores  RootStore (+ the main menu's art), UiStore (screen, the `overlay` over it — the
+              game menu on one of its sections, or a confirmation — and notices), GameStore
+              (MobX wrapper around the engine; resolves ids into image URLs, names, scene titles
+              and audio via `presentation`, so UI never sees content ids; plays the engine's
+              audio effects; autosaves on every line and choice, "Продолжить" resumes from it;
+              keeps the play time — a clock the game screen runs while the player is there),
+              SettingsStore (volumes, mute, text speed and size, panel opacity, language —
+              `ots:settings`, apart from the save)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
 src/shared/lib/storage.ts  localStorage that never throws (blocked, private, full → no saves,
               the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:`
 src/shared/lib/audio.ts  the only file that knows howler
 src/features/advance-dialogue  the single requestAdvance: click on the frame (not on system
               controls), Space/Enter; typewriter state; at a choice, the prompt is read before
-              the options come out, then keys 1–9 pick one; Esc → the settings window (with
-              "Главное меню" in it); nothing reaches the game while a window is open
+              the options come out, then keys 1–9 pick one; Esc → the game menu; nothing
+              reaches the game while a window is open
+src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
+              it in a box of any shape (the Continue card; save slots later)
 src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
               `dissolve` (0.5 s) whenever the frame changes — the engine already gathers every
               change up to the next line into one state, so it is one transition
-src/features/change-settings  the settings' controls; widgets/settings-overlay puts them in a
-              `shared/ui/Modal` (Esc and a click outside close it, caught before the game)
+src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("Настройки"
+              now; history, save and load with their stages), "Главное меню" at the foot in
+              the game; on `shared/ui/Modal` (Esc and a click outside close it, caught before the
+              game). From the main menu it opens with fewer sections
+src/features/change-settings  SettingsSection: the settings' tabs and rows, the game menu's part
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
               dialogue panel (widgets/dialogue-box renders it in place of the caret)
-src/content   the story: ids, speakers, variables, assets (files behind ids), factories
-              (dsl.ts), scenes
+src/widgets   also: dialogue-box (namebox, line, icon buttons, meta line), game-header,
+              continue-card, confirm-dialog, notice (the toast), stage
+src/content   the story: ids, speakers, variables, assets (files behind ids; the menu's art),
+              scene titles, factories (dsl.ts), scenes
 src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
               dev server; `?dev=<scene>` starts from any scene. Left out of production builds
 src/assets    art and music files (WebP / SVG / MP3)
