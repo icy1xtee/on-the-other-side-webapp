@@ -11,8 +11,9 @@ type ChoiceListProps = {
 
 /**
  * The options of a choice: lines of text under the prompt, inside the dialogue panel, that light
- * up on hover or keyboard focus. Each is a button, so a click on one never advances the dialogue
- * as well, and Tab and Enter pick one from the keyboard.
+ * up on hover or keyboard focus, a glowing dot beside them (keys 1–9 pick without numbers). Each
+ * is a button, so a click on one never advances the dialogue as well, and Tab and Enter pick one
+ * from the keyboard.
  *
  * They come in one after another and can't be clicked until halfway in: the panel was being
  * clicked through a moment ago, and that click shouldn't land on an option that just appeared.
@@ -63,7 +64,8 @@ const Option = styled.button`
   border: 0;
   background: none;
   color: ${({ theme }) => theme.colors.choiceText};
-  font-size: ${({ theme }) => u(theme.typography.dialogueSize)};
+  /* The panel's text size — the player's "Размер текста" — like the line above them. */
+  font-size: calc(var(--text-size) * 1px * var(--u, 1));
   line-height: ${({ theme }) => theme.typography.lineHeight};
   text-align: left;
   cursor: pointer;

@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { scenes } from '../scenes';
+import { sceneTitles } from '../sceneTitles';
 import { speakers } from '../speakers';
 import { en } from './en';
 import { collectStoryText } from './storyText';
 
 describe('English story translations', () => {
-  const storyText = collectStoryText(scenes, speakers);
+  const storyText = collectStoryText(scenes, speakers, sceneTitles);
 
-  it('cover every line, option and speaker name', () => {
+  it('cover every line, option, speaker name and scene title', () => {
     const missing = [...storyText].filter((text) => !(text in en));
     expect(missing).toEqual([]);
   });
@@ -19,7 +20,7 @@ describe('English story translations', () => {
 });
 
 describe('collectStoryText', () => {
-  it('finds lines inside choice blocks, at any depth, prompts and option texts', () => {
+  it('finds lines inside choice blocks, at any depth, prompts, option texts and titles', () => {
     const texts = collectStoryText(
       {
         intro: [
@@ -42,11 +43,13 @@ describe('collectStoryText', () => {
         ],
       },
       { mila: { name: 'Мила' } },
+      { intro: 'Начало' },
     );
 
     expect([...texts].sort()).toEqual([
       'Вежливо',
       'Мила',
+      'Начало',
       'Первая',
       'Спасибо.',
       'Спросить',

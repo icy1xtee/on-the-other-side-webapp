@@ -27,6 +27,11 @@ export const saveSchema = z.object({
   audio: z.object({ music: z.nullable(z.string()) }),
   /** Milliseconds since the epoch. */
   savedAt: z.number(),
+  /**
+   * Milliseconds of play up to this save — the save's own data, like `savedAt`, not the game's
+   * state. Optional: saves from before it was kept have none and count from zero.
+   */
+  playTime: z.optional(z.number().check(z.nonnegative())),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;

@@ -10,8 +10,8 @@ import { isSystemControl } from './isSystemControl';
  * At a choice, going on means the player has read the prompt: only then do the options come out
  * (`choiceOptions`), so a prompt is never cut short; keys 1–9 then pick an option. Clicks and
  * keys aimed at system controls belong to those controls; while a window is open over the game,
- * none reach it. Esc opens the settings — Ren'Py's game menu — and the way to the main menu is
- * there.
+ * none reach it. Esc opens the game menu, as in Ren'Py: the settings and the way to the main
+ * menu are there.
  *
  * The line comes out translated: the store holds the Russian source, which is also the key of
  * its translation. Must be called from an `observer` component: it reads the line from the store.
@@ -50,7 +50,7 @@ export function useAdvanceDialogue() {
       return;
     }
     if (event.key === 'Escape') {
-      ui.openSettings();
+      ui.openGameMenu();
       return;
     }
     // 1–9 pick the options on screen, in the order shown — hidden ones don't count.

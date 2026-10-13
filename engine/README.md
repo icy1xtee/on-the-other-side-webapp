@@ -22,7 +22,8 @@ let result = startGame(registry, variableDefaults); // runs up to the first line
 result = advance(result.state, registry); // the player clicked: next line
 result = choose(result.state, registry, 1); // the player picked option 1 of a choice
 
-const text = JSON.stringify(createSave(result.state, registry, Date.now())); // autosave
+const save = createSave(result.state, registry, { savedAt: Date.now(), playTime }); // autosave
+const text = JSON.stringify(save);
 const parsed = parseSave(text); // validated: { ok: true, save } or { ok: false, reason }
 const state = parsed.ok && restoreSave(parsed.save, registry, variableDefaults);
 if (state) result = run(state, registry); // loading runs the saved line or choice, no replay

@@ -8,6 +8,10 @@ export const en: Readonly<Record<string, string>> = {
   Мила: 'Mila',
   'Голос за дверью': 'Voice behind the door',
 
+  // Scene titles
+  'Утро в комнате': 'Morning in the room',
+  'Тихая улица': 'A quiet street',
+
   // intro
   'Утро. Свет пробивается сквозь шторы.': 'Morning. Light seeps through the curtains.',
   'Можно войти?': 'May I come in?',

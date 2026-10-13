@@ -21,6 +21,8 @@ import type { StorageSlot } from '@/shared/lib/storage';
 /** What turns the engine's ids into pictures, names and sounds. Supplied by content at boot. */
 export type Presentation = {
   speakers: Readonly<Record<string, { name: string }>>;
+  /** What the player calls each scene. A scene without one (a dev scene) has no title. */
+  sceneTitles: Readonly<Partial<Record<string, string>>>;
   assets: {
     backgrounds: Readonly<Record<string, string>>;
     characters: Readonly<Record<string, Readonly<Record<string, string>>>>;
@@ -35,6 +37,12 @@ export type SpriteView = {
   tag: string;
   src: string | undefined;
   at: SpritePosition;
+};
+
+/** A picture of the scene: the background and the characters over it, as files. */
+export type FrameView = {
+  background: string | undefined;
+  sprites: SpriteView[];
 };
 
 export type LineView = {
@@ -53,6 +61,22 @@ export type OptionView = {
   text: string;
 };
 
+/** What "Продолжить" leads back to, for the menu's card. Text is the story's source, untranslated. */
+export type ContinuePreview = {
+  frame: FrameView;
+  /** The line on screen there; null if the save stands on a choice without a prompt. */
+  line: { speaker: string | null; text: string } | null;
+  /** Milliseconds since the epoch. */
+  savedAt: number;
+};
+
+/** A game to continue: the autosave's state and what the save says about itself. */
+type Resumable = {
+  state: GameState;
+  savedAt: number;
+  playTime: number;
+};
+
 export type GameStoreOptions = {
   registry: SceneRegistry;
   variableDefaults: Readonly<Record<string, VarValue>>;
@@ -65,6 +89,8 @@ export type GameStoreOptions = {
   onEnd: () => void;
   /** Called once, the first time an autosave can't be written: the player should know. */
   onSaveUnavailable?: () => void;
+  /** The clock, in milliseconds since the epoch; tests pass their own. */
+  now?: () => number;
 };
 
 /**
@@ -75,6 +101,10 @@ export type GameStoreOptions = {
  *
  * One save slot, written on every line and choice — Ren'Py's "saving occurs at the start of a
  * statement". "Продолжить" resumes from it.
+ *
+ * It also keeps the play time: a clock the game screen starts while the player is in the game
+ * and stops when they leave it, hide the tab or open the game menu — Ren'Py's game runtime
+ * doesn't count the menus either.
  */
 export class GameStore {
   state: GameState | null = null;
@@ -83,21 +113,28 @@ export class GameStore {
    * Where "Продолжить" resumes: the last line or choice of this session, or the autosave found
    * at boot. Kept in memory too, so the menu's Continue works even when storage doesn't.
    */
-  resumable: GameState | null = null;
+  resumable: Resumable | null = null;
+  /** Play time banked before the clock last started. */
+  private playedMs = 0;
+  /** When the clock started, or null while it stands. */
+  private clockStartedAt: number | null = null;
   /** Counts what the player has been shown, so a key changes even on coming back to a step. */
   private turn = 0;
   private saveUnavailableReported = false;
   private readonly options: GameStoreOptions;
+  private readonly now: () => number;
 
   constructor(options: GameStoreOptions) {
     this.options = options;
-    makeAutoObservable<this, 'options' | 'saveUnavailableReported'>(
+    this.now = options.now ?? Date.now;
+    makeAutoObservable<this, 'options' | 'now' | 'saveUnavailableReported'>(
       this,
       {
         state: observable.ref,
         interaction: observable.ref,
         resumable: observable.ref,
         options: false,
+        now: false,
         saveUnavailableReported: false,
       },
       { autoBind: true },
@@ -111,25 +148,23 @@ export class GameStore {
 
   /** Background image URL. */
   get background(): string | undefined {
-    const id = this.state?.stage.background;
-    return id ? this.options.presentation.assets.backgrounds[id] : undefined;
+    return this.state ? this.frameOf(this.state).background : undefined;
   }
 
   /** Sprites in z-order, with their image URLs. */
   get sprites(): SpriteView[] {
-    const { characters } = this.options.presentation.assets;
-    return (this.state?.stage.sprites ?? []).map(({ tag, emotion, at }) => ({
-      tag,
-      at,
-      src: characters[tag]?.[emotion],
-    }));
+    return this.state ? this.frameOf(this.state).sprites : [];
+  }
+
+  /** The title of the scene being played, untranslated; empty for a scene without one. */
+  get sceneTitle(): string {
+    const sceneId = this.state?.position.sceneId;
+    return (sceneId && this.options.presentation.sceneTitles[sceneId]) || '';
   }
 
   /** The line on screen: the one the player is reading, or the prompt of the current choice. */
   get line(): LineView | null {
-    const current = this.interaction;
-    const shown =
-      current?.type === 'say' ? current : current?.type === 'choice' ? current.prompt : undefined;
+    const shown = shownLine(this.interaction);
     if (!this.state || !shown) {
       return null;
     }
@@ -158,7 +193,54 @@ export class GameStore {
     );
   }
 
+  /**
+   * Where "Продолжить" leads: the picture and the line there. The line comes from running the
+   * saved state — the same `run` Continue does, without its effects.
+   */
+  get continuePreview(): ContinuePreview | null {
+    const resumable = this.resumable;
+    if (!resumable) {
+      return null;
+    }
+    const shown = shownLine(run(resumable.state, this.options.registry).interaction);
+    const { speakers } = this.options.presentation;
+    return {
+      frame: this.frameOf(resumable.state),
+      line: shown && {
+        speaker: shown.speaker ? (speakers[shown.speaker]?.name ?? shown.speaker) : null,
+        text: shown.text,
+      },
+      savedAt: resumable.savedAt,
+    };
+  }
+
+  /** Milliseconds of play in this game so far, the running stretch included. */
+  playTime(now = this.now()): number {
+    return this.playedMs + (this.clockStartedAt === null ? 0 : now - this.clockStartedAt);
+  }
+
+  /** The player is in the game: time counts. */
+  startClock() {
+    this.clockStartedAt ??= this.now();
+  }
+
+  /**
+   * The player left the game, hid the tab or opened the game menu: time stops. The autosave
+   * takes the time played on the last line, which no line or choice has saved yet.
+   */
+  stopClock() {
+    if (this.clockStartedAt === null) {
+      return;
+    }
+    this.playedMs = this.playTime();
+    this.clockStartedAt = null;
+    if (this.state && this.interaction && this.interaction.type !== 'end') {
+      this.writeSave(this.state);
+    }
+  }
+
   newGame() {
+    this.restartClock(0);
     this.apply(startGame(this.options.registry, this.options.variableDefaults));
   }
 
@@ -171,10 +253,11 @@ export class GameStore {
       return false;
     }
     const resumed = this.resumable;
-    this.apply(run(resumed, this.options.registry));
+    this.restartClock(resumed.playTime);
+    this.apply(run(resumed.state, this.options.registry));
     // Nothing was re-executed, so nothing re-played: the music comes back from the state.
     // `ifChanged`: coming back from the menu to the same scene, the track isn't restarted.
-    this.options.audio.playMusic(this.musicSrc(resumed.audio.music), { ifChanged: true });
+    this.options.audio.playMusic(this.musicSrc(resumed.state.audio.music), { ifChanged: true });
     return true;
   }
 
@@ -197,6 +280,14 @@ export class GameStore {
       return;
     }
     this.apply(choose(this.state, this.options.registry, index));
+  }
+
+  /** Another game's time from here on; a running clock keeps running. */
+  private restartClock(playedMs: number) {
+    this.playedMs = playedMs;
+    if (this.clockStartedAt !== null) {
+      this.clockStartedAt = this.now();
+    }
   }
 
   private apply(result: RunResult) {
@@ -227,19 +318,34 @@ export class GameStore {
     }
   }
 
+  private frameOf(state: GameState): FrameView {
+    const { backgrounds, characters } = this.options.presentation.assets;
+    const { background, sprites } = state.stage;
+    return {
+      background: background ? backgrounds[background] : undefined,
+      sprites: sprites.map(({ tag, emotion, at }) => ({
+        tag,
+        at,
+        src: characters[tag]?.[emotion],
+      })),
+    };
+  }
+
   /** A track without a file plays as silence rather than leaving the last one on. */
   private musicSrc(id: string | null): string | null {
     return id === null ? null : (this.options.presentation.assets.music[id] ?? null);
   }
 
   private writeSave(state: GameState): boolean {
-    this.resumable = state;
-    const save = createSave(state, this.options.registry, Date.now());
+    const savedAt = this.now();
+    const playTime = this.playTime(savedAt);
+    this.resumable = { state, savedAt, playTime };
+    const save = createSave(state, this.options.registry, { savedAt, playTime });
     return this.options.saveSlot.write(JSON.stringify(save));
   }
 
   /** The autosave found at boot, if it can be resumed. A broken one is logged and ignored. */
-  private readSave(): GameState | null {
+  private readSave(): Resumable | null {
     const text = this.options.saveSlot.read();
     if (text === null) {
       return null;
@@ -253,7 +359,16 @@ export class GameStore {
     const state = restoreSave(parsed.save, registry, variableDefaults);
     if (!state) {
       console.warn(`Autosave ignored: scene "${parsed.save.position.sceneId}" is gone`);
+      return null;
     }
-    return state;
+    return { state, savedAt: parsed.save.savedAt, playTime: parsed.save.playTime ?? 0 };
   }
+}
+
+/** The line an interaction shows: a spoken or narrated line, or the prompt of a choice. */
+function shownLine(interaction: Interaction | null) {
+  if (interaction?.type === 'say') {
+    return interaction;
+  }
+  return interaction?.type === 'choice' ? (interaction.prompt ?? null) : null;
 }

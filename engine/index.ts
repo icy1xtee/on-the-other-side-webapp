@@ -28,6 +28,6 @@ export {
 } from './interpreter/interpreter';
 
 export { SAVE_VERSION, type SaveData } from './save/schema';
-export { createSave, parseSave, restoreSave, type ParsedSave } from './save/save';
+export { createSave, parseSave, restoreSave, type ParsedSave, type SaveMeta } from './save/save';
 
 export { EngineError } from './errors';

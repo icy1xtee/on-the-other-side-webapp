@@ -74,7 +74,7 @@
 src/shared/config/storageKeys.ts    ots:persistent
 src/app/stores/                     persistent (прочитанное), режимы в сторе чтения, SettingsStore
 src/features/advance-dialogue/      Tab, Ctrl
-src/widgets/mode-indicator/         показывается
+src/widgets/mode-indicator/         индикатор AUTO / SKIP по макету (перенесён с этапа 0)
 src/widgets/scene-view/             без перехода при пропуске
 src/widgets/game-menu/              две строки настроек
 ```

@@ -17,6 +17,8 @@ export type AudioOutput = {
   playMusic(src: string | null, options?: { ifChanged?: boolean }): void;
   playSound(src: string): void;
   setVolumes(volumes: Volumes): void;
+  /** Silences everything without touching the volumes — Ren'Py's "Mute All". */
+  setMuted(muted: boolean): void;
 };
 
 /**
@@ -77,6 +79,10 @@ export function createAudioPlayer({ fadeMs }: { fadeMs: number }): AudioOutput {
       volumes = next;
       Howler.volume(next.master);
       music?.howl.volume(next.music);
+    },
+
+    setMuted(muted) {
+      Howler.mute(muted);
     },
   };
 }

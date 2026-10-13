@@ -1,16 +1,18 @@
-import { Cog } from 'lucide-react';
+import { Cog, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { u } from '@/shared/lib/units';
-import { IconButton } from '@/shared/ui/IconButton';
+import { RevealButton, RevealGroup } from '@/shared/ui/RevealButton';
 
 type GameHeaderProps = {
-  /** The cog: opens the settings window. */
+  /** The cog: opens the game menu on the settings. */
   onSettings: () => void;
+  /** The player's avatar. */
+  onProfile: () => void;
 };
 
-/** The bar across the top of the game screen: logo and settings. */
-export function GameHeader({ onSettings }: GameHeaderProps) {
+/** The bar across the top of the game screen: the logo; the settings and the player on the right. */
+export function GameHeader({ onSettings, onProfile }: GameHeaderProps) {
   const { t } = useTranslation();
 
   return (
@@ -19,9 +21,21 @@ export function GameHeader({ onSettings }: GameHeaderProps) {
         <LogoMark />
         <LogoText>on the other side</LogoText>
       </Logo>
-      <SettingsButton label={t('header.settings')} tooltipPlacement="bottom" onClick={onSettings}>
-        <Cog />
-      </SettingsButton>
+      <Controls>
+        <RevealButton
+          variant="header"
+          label={t('header.settings')}
+          icon={<Cog />}
+          onClick={onSettings}
+        />
+        <RevealButton
+          variant="header"
+          round
+          label={t('header.profile')}
+          icon={<UserRound />}
+          onClick={onProfile}
+        />
+      </Controls>
     </Header>
   );
 }
@@ -34,6 +48,7 @@ const Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: ${u(24)};
   background: ${({ theme }) => theme.surfaces.header};
   backdrop-filter: blur(14px);
   border-bottom: 1px solid ${({ theme }) => theme.colors.headerBorder};
@@ -47,6 +62,7 @@ const Logo = styled.div`
 `;
 
 const LogoMark = styled.div`
+  flex: none;
   width: ${({ theme }) => u(theme.header.logoMarkSize)};
   height: ${({ theme }) => u(theme.header.logoMarkSize)};
   border-radius: 50%;
@@ -55,7 +71,7 @@ const LogoMark = styled.div`
 `;
 
 const LogoText = styled.div`
-  width: ${u(130)};
+  width: ${({ theme }) => u(theme.header.logoTextWidth)};
   margin-top: ${u(12)};
   font-family: ${({ theme }) => theme.typography.monoFamily};
   font-size: ${({ theme }) => u(theme.typography.logoSize)};
@@ -63,8 +79,8 @@ const LogoText = styled.div`
   letter-spacing: 0.52em;
 `;
 
-const SettingsButton = styled(IconButton)`
-  width: ${u(34)};
-  height: ${u(34)};
-  font-size: ${u(15)};
+const Controls = styled(RevealGroup)`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => u(theme.header.gap)};
 `;

@@ -5,7 +5,16 @@ import '@/app/styles/fonts';
 import App from '@/app/App';
 import { RootStore } from '@/app/stores/RootStore';
 import { theme } from '@/app/styles/theme';
-import { assets, scenes, speakers, startScene, storyEn, variableDefaults } from '@/content';
+import {
+  assets,
+  menuArt,
+  sceneTitles,
+  scenes,
+  speakers,
+  startScene,
+  storyEn,
+  variableDefaults,
+} from '@/content';
 import { STORAGE_KEYS } from '@/shared/config/storageKeys';
 import { initI18n } from '@/shared/i18n/i18n';
 import { createAudioPlayer } from '@/shared/lib/audio';
@@ -40,12 +49,13 @@ const devRegistry = import.meta.env.DEV ? await createDevRegistry() : null;
 const rootStore = new RootStore({
   registry: devRegistry ?? createSceneRegistry(scenes, startScene),
   variableDefaults,
-  presentation: { speakers, assets },
+  presentation: { speakers, sceneTitles, assets },
   // A `?dev=` run keeps its own save: testing a scene doesn't overwrite the real playthrough.
   saveSlot: createStorageSlot(
     import.meta.env.DEV && devRegistry ? STORAGE_KEYS.devAutosave : STORAGE_KEYS.autosave,
   ),
   settingsSlot: createStorageSlot(STORAGE_KEYS.settings),
+  menuArt,
   audio: createAudioPlayer({ fadeMs: theme.timing.transitionMs }),
 });
 
