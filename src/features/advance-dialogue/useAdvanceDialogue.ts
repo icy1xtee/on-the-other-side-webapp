@@ -1,23 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { useTypewriter } from '@/shared/lib/useTypewriter';
 import { isSystemControl } from './isSystemControl';
 
 /**
- * The single way the story moves on. A click anywhere on the stage, Space or Enter all lead to
- * one `requestAdvance`: while the line is still typing, show it whole; once it is whole, go on.
- * At a choice, going on means the player has read the prompt: only then do the options come out
- * (`choiceOptions`), so a prompt is never cut short; keys 1–9 then pick an option. Clicks and
+ * Turns the player's clicks and keys into the reading store's commands; how far the line is read
+ * and what going on means live there (`ReadingStore`). A click anywhere on the stage, Space or
+ * Enter all request the advance; keys 1–9 pick an option once the options are out. Clicks and
  * keys aimed at system controls belong to those controls; while a window is open over the game,
  * none reach it. Esc opens the game menu, as in Ren'Py: the settings and the way to the main
  * menu are there.
  *
- * The line comes out translated: the store holds the Russian source, which is also the key of
- * its translation. Must be called from an `observer` component: it reads the line from the store.
+ * Here too runs the typewriter, which reports to the store when the line has typed out. The line
+ * comes out translated: the store holds the Russian source, which is also the key of its
+ * translation. Must be called from an `observer` component: it reads the stores.
  */
 export function useAdvanceDialogue() {
-  const { game, ui, settings } = useStores();
+  const { game, reading, ui, settings } = useStores();
   const { t } = useTranslation('story');
   const source = game.line;
   const line = source && {
@@ -25,81 +25,59 @@ export function useAdvanceDialogue() {
     text: t(source.text),
     speaker: source.speaker && { ...source.speaker, name: t(source.speaker.name) },
   };
-  const typewriter = useTypewriter(line?.text ?? '', settings.textCps, line?.key ?? '');
-
-  // The key of the prompt the player has clicked past. A choice without a prompt has nothing to
-  // read: its options are out at once.
-  const [readPrompt, setReadPrompt] = useState<string | null>(null);
-  const options = game.choiceOptions;
-  const promptPending = options !== null && source !== null && readPrompt !== source.key;
-  const choiceOptions = promptPending ? null : options;
-
-  const requestAdvance = () => {
-    if (typewriter.isRevealing) {
-      typewriter.finish();
-    } else if (promptPending) {
-      setReadPrompt(source.key);
-    } else {
-      game.advance();
-    }
-  };
-
-  const onKeyDown = (event: KeyboardEvent) => {
-    // The open window handles its keys, Esc included (it closes it before this sees it).
-    if (ui.overlay) {
-      return;
-    }
-    if (event.key === 'Escape') {
-      ui.openGameMenu();
-      return;
-    }
-    // 1–9 pick the options on screen, in the order shown — hidden ones don't count.
-    if (choiceOptions && /^[1-9]$/.test(event.key)) {
-      const option = choiceOptions[Number(event.key) - 1];
-      if (option && !event.repeat) {
-        event.preventDefault();
-        game.choose(option.index);
-      }
-      return;
-    }
-    if (event.key !== ' ' && event.key !== 'Enter') {
-      return;
-    }
-    // A focused button handles Space and Enter itself; advancing too would double the action.
-    if (isSystemControl(event.target)) {
-      return;
-    }
-    event.preventDefault();
-    // A held key auto-repeats: without this, holding Space would race through the scene.
-    if (event.repeat) {
-      return;
-    }
-    requestAdvance();
-  };
-
-  // One window listener for the screen's lifetime, always calling the latest handler: the
-  // handler changes with every typed character, the subscription shouldn't.
-  const latestOnKeyDown = useRef(onKeyDown);
-  useLayoutEffect(() => {
-    latestOnKeyDown.current = onKeyDown;
+  const visibleText = useTypewriter(line?.text ?? '', settings.textCps, line?.key ?? '', {
+    shown: reading.lineShown,
+    onTyped: () => source && reading.lineTyped(source.key),
   });
+
+  // One window listener for the screen's lifetime: it reads everything from the stores at the
+  // moment of the key, so nothing in it goes stale between renders.
   useEffect(() => {
-    const listener = (event: KeyboardEvent) => latestOnKeyDown.current(event);
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
-  }, []);
+    const onKeyDown = (event: KeyboardEvent) => {
+      // The open window handles its keys, Esc included (it closes it before this sees it).
+      if (ui.overlay) {
+        return;
+      }
+      if (event.key === 'Escape') {
+        ui.openGameMenu();
+        return;
+      }
+      // 1–9 pick the options on screen, in the order shown.
+      if (/^[1-9]$/.test(event.key)) {
+        if (!event.repeat && reading.pickOption(Number(event.key))) {
+          event.preventDefault();
+        }
+        return;
+      }
+      if (event.key !== ' ' && event.key !== 'Enter') {
+        return;
+      }
+      // A focused button handles Space and Enter itself; advancing too would double the action.
+      if (isSystemControl(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      // A held key auto-repeats: without this, holding Space would race through the scene.
+      if (event.repeat) {
+        return;
+      }
+      reading.requestAdvance();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [ui, reading]);
 
   const onStageClick = (event: MouseEvent<HTMLElement>) => {
     if (!ui.overlay && !isSystemControl(event.target)) {
-      requestAdvance();
+      reading.requestAdvance();
     }
   };
 
   return {
     line,
-    visibleText: typewriter.visibleText,
+    visibleText,
     /** The options to pick from, once the prompt has been read; null otherwise. */
-    choiceOptions,
+    choiceOptions: reading.choiceOptions,
     onStageClick,
   };
 }

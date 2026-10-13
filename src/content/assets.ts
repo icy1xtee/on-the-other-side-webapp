@@ -27,7 +27,7 @@ export const assets = {
   music: {
     theme: themeMusic,
   } satisfies Record<MusicId, string>,
-  // No sound files yet: `door` plays nothing until one arrives.
+  // No sound files yet (stage 6 of 0.2): a sound without one plays nothing.
   sounds: {} satisfies Partial<Record<SfxId, string>>,
 };
 

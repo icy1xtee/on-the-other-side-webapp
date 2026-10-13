@@ -1,0 +1,55 @@
+# Every pull request into main, and main itself after a merge, gets the same checks a step has to
+# pass locally (CLAUDE.md): lint, types, unit tests, formatting, build — and the e2e smoke tests
+# against the production build.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A new push to the same branch makes the run still going for the old one pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # The exact version `engines` asks for: .npmrc has engine-strict.
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run format:check
+      - run: npm run build
+
+  e2e:
+    name: e2e smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Chromium only, headless shell only: the tests never open a window. Not cached — Playwright
+      # advises against it: restoring takes about as long as downloading, and the system
+      # libraries have to be installed anyway.
+      - run: npx playwright install --with-deps --only-shell chromium
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

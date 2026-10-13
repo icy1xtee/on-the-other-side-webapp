@@ -22,7 +22,7 @@ import { Stage } from '@/widgets/stage/Stage';
  * options come out under it.
  */
 export const GamePage = observer(function GamePage() {
-  const { game, ui, settings, toMainMenu } = useStores();
+  const { game, saves, ui, settings, toMainMenu } = useStores();
   const theme = useTheme();
   const { t } = useTranslation();
   const { line, visibleText, choiceOptions: options, onStageClick } = useAdvanceDialogue();
@@ -34,9 +34,9 @@ export const GamePage = observer(function GamePage() {
     if (!counting) {
       return;
     }
-    game.startClock();
-    return () => game.stopClock();
-  }, [counting, game]);
+    saves.startClock();
+    return () => saves.stopClock();
+  }, [counting, saves]);
 
   const comingSoon = (feature: string) => ui.showNotice(t('notice.comingSoon', { feature }));
 
@@ -44,7 +44,7 @@ export const GamePage = observer(function GamePage() {
   // come with their stages of this version.
   const onSystemAction = (action: SystemAction) => {
     if (action === 'save') {
-      const saved = game.saveNow();
+      const saved = saves.saveNow();
       ui.showNotice(saved ? t('notice.saved') : t('notice.saveFailed'), saved ? 'info' : 'error');
     } else {
       comingSoon(t(`dialogue.action.${action}`));
@@ -57,7 +57,7 @@ export const GamePage = observer(function GamePage() {
     <Stage
       modal={overlay !== null}
       onClick={onStageClick}
-      scene={<SceneView background={game.background} sprites={game.sprites} />}
+      scene={<SceneView {...game.frame} />}
       ui={
         <>
           <GameHeader
@@ -99,9 +99,9 @@ export const GamePage = observer(function GamePage() {
 
 /** The scene's title and the play time, ticking every second: only this line re-renders. */
 const PlayMeta = observer(function PlayMeta() {
-  const { game } = useStores();
+  const { game, saves } = useStores();
   const { t } = useTranslation('story');
   const now = useNow(1000);
   const title = game.sceneTitle && t(game.sceneTitle);
-  return [title, formatPlayTime(game.playTime(now))].filter(Boolean).join(' · ');
+  return [title, formatPlayTime(saves.playTime(now))].filter(Boolean).join(' · ');
 });
