@@ -63,13 +63,15 @@ if (state) result = run(state, registry); // loading runs the saved line or choi
   `default` — the story's defaults first, then the saved values, minus the removed or retyped.
   A scene changed since the save starts over with the saved vars; a scene that is gone leaves
   nothing to resume.
+- **Fingerprints.** `hashText` is the hash behind `sceneHash` (cyrb53, base 36), exported for
+  the app: it keys the lines the player has read without copying the story into storage.
 
 ## Layout
 
 ```
 types/        commands, ids, text
 state/        GameState, applyInstant (instant commands), effects
-program/      compileScene (flattening), sceneRegistry, hashProgram (scene fingerprints)
+program/      compileScene (flattening), sceneRegistry, hashProgram (scene and text fingerprints)
 interpreter/  startGame, run, advance, choose, step limit
 save/         schema (format + zod), migrate, createSave / parseSave / restoreSave
 ```

@@ -7,10 +7,10 @@ import { isSystemControl } from './isSystemControl';
 /**
  * Turns the player's clicks and keys into the reading store's commands; how far the line is read
  * and what going on means live there (`ReadingStore`). A click anywhere on the stage, Space or
- * Enter all request the advance; keys 1–9 pick an option once the options are out. Clicks and
- * keys aimed at system controls belong to those controls; while a window is open over the game,
- * none reach it. Esc opens the game menu, as in Ren'Py: the settings and the way to the main
- * menu are there.
+ * Enter all request the advance; keys 1–9 pick an option once the options are out. Ren'Py's
+ * keys for Skip: Tab turns it on and off, Ctrl skips while held. Clicks and keys aimed at system
+ * controls belong to those controls; while a window is open over the game, none reach it. Esc
+ * opens the game menu, as in Ren'Py: the settings and the way to the main menu are there.
  *
  * Here too runs the typewriter, which reports to the store when the line has typed out. The line
  * comes out translated: the store holds the Russian source, which is also the key of its
@@ -30,8 +30,8 @@ export function useAdvanceDialogue() {
     onTyped: () => source && reading.lineTyped(source.key),
   });
 
-  // One window listener for the screen's lifetime: it reads everything from the stores at the
-  // moment of the key, so nothing in it goes stale between renders.
+  // Window listeners for the screen's lifetime: they read everything from the stores at the
+  // moment of the key, so nothing in them goes stale between renders.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       // The open window handles its keys, Esc included (it closes it before this sees it).
@@ -40,6 +40,22 @@ export function useAdvanceDialogue() {
       }
       if (event.key === 'Escape') {
         ui.openGameMenu();
+        return;
+      }
+      if (event.key === 'Control') {
+        reading.holdSkip(true);
+        return;
+      }
+      // Tab toggles Skip, unless the focus is already on a control: there it moves the focus
+      // on, and Shift+Tab always does — the panel's buttons stay reachable from the keyboard.
+      if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.metaKey) {
+        if (event.ctrlKey || isSystemControl(event.target)) {
+          return;
+        }
+        event.preventDefault();
+        if (!event.repeat) {
+          reading.toggleSkip();
+        }
         return;
       }
       // 1–9 pick the options on screen, in the order shown.
@@ -63,8 +79,22 @@ export function useAdvanceDialogue() {
       }
       reading.requestAdvance();
     };
+    // Ctrl let go — or never seen let go: Ctrl+Tab and the like take the window away first.
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Control') {
+        reading.holdSkip(false);
+      }
+    };
+    const onBlur = () => reading.holdSkip(false);
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+      reading.holdSkip(false);
+    };
   }, [ui, reading]);
 
   const onStageClick = (event: MouseEvent<HTMLElement>) => {

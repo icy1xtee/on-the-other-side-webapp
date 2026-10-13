@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPlayTime, formatSavedAt } from './format';
+import { formatPlayTime, formatSavedAt, formatTenths } from './format';
 
 describe('formatPlayTime', () => {
   it('reads as a clock, seconds rounded down', () => {
@@ -20,5 +20,12 @@ describe('formatSavedAt', () => {
   it("writes the date and time the way the player's language does", () => {
     expect(formatSavedAt(savedAt, 'ru')).toBe('12.10.2026 · 18:57');
     expect(formatSavedAt(savedAt, 'en')).toMatch(/^10\/12\/2026 · 0?6:57\sPM$/);
+  });
+});
+
+describe('formatTenths', () => {
+  it("keeps one decimal, with the player's language's separator", () => {
+    expect(formatTenths(2, 'ru')).toBe('2,0');
+    expect(formatTenths(0.5, 'en')).toBe('0.5');
   });
 });

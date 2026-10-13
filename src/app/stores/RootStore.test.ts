@@ -12,6 +12,7 @@ function createRoot(saveSlot = memorySlot(), settingsSlot = memorySlot(), audio 
       presentation,
       saveSlot,
       settingsSlot,
+      persistentSlot: memorySlot(),
       menuArt: { background: '/room.webp', character: '/mila-happy.webp' },
       audio,
     }),
@@ -70,6 +71,19 @@ describe('RootStore', () => {
 
     root.reading.requestAdvance();
     expect(root.game.line?.text).toBe('Последняя');
+  });
+
+  it('stops Auto and Skip when the game menu opens or the player leaves the game', () => {
+    const { root } = createRoot();
+    root.newGame();
+    root.reading.toggleAuto();
+    root.ui.openGameMenu();
+    expect(root.reading.mode).toBeNull();
+
+    root.ui.closeOverlay();
+    root.reading.toggleSkip();
+    root.toMainMenu();
+    expect(root.reading.mode).toBeNull();
   });
 
   it('applies the volumes at once, at boot and on every change', () => {

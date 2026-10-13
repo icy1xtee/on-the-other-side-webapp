@@ -2,8 +2,9 @@ import { observer } from 'mobx-react-lite';
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
-import { MIN_WINDOW_OPACITY, TEXT_SIZES } from '@/shared/config/settings';
+import { AUTO_DELAY, MIN_WINDOW_OPACITY, SKIP_MODES, TEXT_SIZES } from '@/shared/config/settings';
 import { languageNames, languages } from '@/shared/i18n/languages';
+import { formatTenths } from '@/shared/lib/format';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { u } from '@/shared/lib/units';
 import { useFullscreen } from '@/shared/lib/useFullscreen';
@@ -76,17 +77,37 @@ const TextSettings = observer(function TextSettings() {
   const instant = settings.textCps === 0;
 
   return (
-    <SliderRow
-      label={t('settings.textSpeed')}
-      valueText={
-        instant ? t('settings.textInstant') : t('settings.textCps', { cps: settings.textCps })
-      }
-      value={instant ? INSTANT_NOTCH : settings.textCps}
-      min={TEXT_SPEED.min}
-      max={INSTANT_NOTCH}
-      step={1}
-      onChange={(notch) => settings.setTextCps(notch >= INSTANT_NOTCH ? 0 : notch)}
-    />
+    <>
+      <SliderRow
+        label={t('settings.textSpeed')}
+        valueText={
+          instant ? t('settings.textInstant') : t('settings.textCps', { cps: settings.textCps })
+        }
+        value={instant ? INSTANT_NOTCH : settings.textCps}
+        min={TEXT_SPEED.min}
+        max={INSTANT_NOTCH}
+        step={1}
+        onChange={(notch) => settings.setTextCps(notch >= INSTANT_NOTCH ? 0 : notch)}
+      />
+      <SliderRow
+        label={t('settings.autoDelay')}
+        hint={t('settings.autoDelayHint')}
+        valueText={t('settings.seconds', {
+          value: formatTenths(settings.autoDelay, settings.language),
+        })}
+        value={settings.autoDelay}
+        onChange={settings.setAutoDelay}
+        {...AUTO_DELAY}
+      />
+      <Row label={t('settings.skip')}>
+        <Segmented
+          label={t('settings.skip')}
+          value={settings.skipMode}
+          options={SKIP_MODES.map((mode) => ({ value: mode, label: t(`settings.skip.${mode}`) }))}
+          onChange={settings.setSkipMode}
+        />
+      </Row>
+    </>
   );
 });
 

@@ -45,16 +45,17 @@ async function createDevRegistry(): Promise<SceneRegistry | null> {
 }
 
 const devRegistry = import.meta.env.DEV ? await createDevRegistry() : null;
+const devRun = import.meta.env.DEV && devRegistry !== null;
 
 const rootStore = new RootStore({
   registry: devRegistry ?? createSceneRegistry(scenes, startScene),
   variableDefaults,
   presentation: { speakers, sceneTitles, assets },
-  // A `?dev=` run keeps its own save: testing a scene doesn't overwrite the real playthrough.
-  saveSlot: createStorageSlot(
-    import.meta.env.DEV && devRegistry ? STORAGE_KEYS.devAutosave : STORAGE_KEYS.autosave,
-  ),
+  // A `?dev=` run keeps its own save and its own read lines: testing a scene doesn't touch the
+  // real playthrough.
+  saveSlot: createStorageSlot(devRun ? STORAGE_KEYS.devAutosave : STORAGE_KEYS.autosave),
   settingsSlot: createStorageSlot(STORAGE_KEYS.settings),
+  persistentSlot: createStorageSlot(devRun ? STORAGE_KEYS.devPersistent : STORAGE_KEYS.persistent),
   menuArt,
   audio: createAudioPlayer({ fadeMs: theme.timing.transitionMs }),
 });

@@ -19,3 +19,11 @@ export function formatSavedAt(ms: number, language: string): string {
   const time = new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit' }).format(at);
   return `${date} · ${time}`;
 }
+
+/** A number with one decimal, the way the player's language writes it: `2,5` / `2.5`. */
+export function formatTenths(value: number, language: string): string {
+  return new Intl.NumberFormat(language, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
+}

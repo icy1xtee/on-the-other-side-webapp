@@ -18,8 +18,9 @@ import { RevealButton, RevealGroup } from '@/shared/ui/RevealButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
 
 // System controls from the design, as icons whose names open beside them. What they do is up to
-// the page: in this version Save saves at once and the rest come one by one; the choice history
-// is not there yet. Clicks on any of them never advance the dialogue.
+// the page: Auto and Skip switch modes and stay pressed while theirs runs (`aria-pressed`), Save
+// saves at once, the rest come one by one in this version; the choice history is not there yet.
+// Clicks on any of them never advance the dialogue.
 const SYSTEM_ACTIONS = [
   ['back', Undo2],
   ['auto', Play],
@@ -30,6 +31,8 @@ const SYSTEM_ACTIONS = [
   ['choices', Signpost],
 ] as const satisfies ReadonlyArray<readonly [string, LucideIcon]>;
 const UNAVAILABLE_ACTIONS: ReadonlySet<SystemAction> = new Set(['choices']);
+/** Buttons that stay pressed while their mode runs. */
+const TOGGLE_ACTIONS: ReadonlySet<SystemAction> = new Set(['auto', 'skip']);
 
 export type SystemAction = (typeof SYSTEM_ACTIONS)[number][0];
 
@@ -53,6 +56,8 @@ type DialogueBoxProps = {
   meta: ReactNode;
   /** A system button was pressed. */
   onSystemAction: (action: SystemAction) => void;
+  /** The toggles that are on: Auto or Skip while its mode runs. */
+  pressed: ReadonlySet<SystemAction>;
   /** The voice button beside the name. */
   onVoice: () => void;
 };
@@ -73,6 +78,7 @@ export function DialogueBox({
   opacity,
   meta,
   onSystemAction,
+  pressed,
   onVoice,
 }: DialogueBoxProps) {
   const { t } = useTranslation();
@@ -123,6 +129,7 @@ export function DialogueBox({
               label={unavailable ? t('dialogue.locked', { action: name }) : name}
               icon={<Icon />}
               unavailable={unavailable}
+              aria-pressed={TOGGLE_ACTIONS.has(action) ? pressed.has(action) : undefined}
               onClick={() => onSystemAction(action)}
             />
           );

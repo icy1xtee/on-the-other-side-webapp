@@ -7,7 +7,15 @@ import type { Program } from './compileScene';
  * moves no steps.
  */
 export function hashProgram(program: Program): string {
-  return cyrb53(JSON.stringify(program)).toString(36);
+  return hashText(JSON.stringify(program));
+}
+
+/**
+ * A short fingerprint of any text, the same one scene fingerprints are made of: the app keys the
+ * lines the player has read with it, so the story's text isn't copied into storage.
+ */
+export function hashText(text: string): string {
+  return cyrb53(text).toString(36);
 }
 
 /** cyrb53 (public domain, bryc): fast, well spread, 53 bits. Not cryptographic, nor need it be. */

@@ -6,7 +6,7 @@ import { demo, line, openMenu } from './game';
 
 test('a press mid-line shows the line whole; the next one goes on', async ({ page }) => {
   // Slow enough for the first line to be still typing when the key comes.
-  await openMenu(page, 10);
+  await openMenu(page, { textCps: 10 });
   await page.getByRole('button', { name: 'Новая игра' }).click();
   await expect(page.getByRole('toolbar')).toBeVisible();
   const first = line(page, demo.firstLine);
@@ -19,7 +19,7 @@ test('a press mid-line shows the line whole; the next one goes on', async ({ pag
 });
 
 test('a line typed out by itself goes on with a single press', async ({ page }) => {
-  await openMenu(page, 60);
+  await openMenu(page, { textCps: 60 });
   await page.getByRole('button', { name: 'Новая игра' }).click();
   const first = line(page, demo.firstLine);
   await expect(first).toBeVisible();
