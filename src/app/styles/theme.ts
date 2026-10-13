@@ -29,6 +29,8 @@ export const theme = {
     accent: '#7cc3d6',
     accentFill: '#5fb0c6',
     accentText: '#a6dbe6',
+    /** The AUTO / SKIP plaque's edge. */
+    modeBorder: 'rgba(110, 190, 210, 0.28)',
     focusRing: 'rgba(124, 195, 214, 0.5)',
     panelBorder: 'rgba(255, 255, 255, 0.08)',
     windowBorder: 'rgba(255, 255, 255, 0.09)',
@@ -112,6 +114,7 @@ export const theme = {
     window: 'linear-gradient(180deg, rgba(15, 19, 29, 0.98), rgba(8, 11, 17, 0.98))',
     dialog: 'linear-gradient(180deg, rgba(18, 23, 34, 0.99), rgba(10, 13, 20, 0.99))',
     toast: 'rgba(14, 18, 27, 0.96)',
+    modeIndicator: 'rgba(8, 11, 17, 0.62)',
     logoMark: 'radial-gradient(circle at 32% 30%, #a9e3ee 0%, #4f9fb8 40%, #1c4e66 100%)',
   },
   shadows: {
@@ -156,6 +159,7 @@ export const theme = {
     cardTitleSize: 20,
     cardLineSize: 13.5,
     toastSize: 13.5,
+    modeSize: 10.5,
     valueSize: 11,
     voiceSize: 9,
   },
@@ -354,6 +358,14 @@ export const theme = {
     radius: 12,
     gap: 10,
     dotSize: 7,
+  },
+  /** AUTO ▸ / SKIP ▸▸ under the header, on the left: what is turning the pages. */
+  modeIndicator: {
+    top: 88,
+    left: 52,
+    height: 26,
+    paddingX: 10,
+    radius: 8,
   },
   zIndex: {
     /** Background and characters together: they dissolve as one frame. */

@@ -18,6 +18,8 @@ describe('readSettings', () => {
       muted: true,
       textCps: 0,
       textSize: 'huge',
+      autoDelay: 9,
+      skipMode: 'all',
       windowOpacity: 0.1,
       language: 'de',
     });
@@ -26,6 +28,7 @@ describe('readSettings', () => {
       masterVolume: 0.4,
       muted: true,
       textCps: 0,
+      skipMode: 'all',
     });
   });
 });
@@ -60,6 +63,23 @@ describe('SettingsStore', () => {
     settings.setSoundVolume(-1);
 
     expect(settings.volumes).toMatchObject({ master: 1, sound: 0 });
+  });
+
+  it("keeps Auto's pause on the slider's half-second steps, within its range", () => {
+    const settings = new SettingsStore(memorySlot());
+    settings.setAutoDelay(2.3);
+    expect(settings.autoDelay).toBe(2.5);
+
+    settings.setAutoDelay(0);
+    expect(settings.autoDelay).toBe(0.5);
+    settings.setAutoDelay(60);
+    expect(settings.autoDelay).toBe(6);
+  });
+
+  it('keeps what Skip passes', () => {
+    const slot = memorySlot();
+    new SettingsStore(slot).setSkipMode('all');
+    expect(new SettingsStore(memorySlot(slot.value)).skipMode).toBe('all');
   });
 
   it('keeps the panel readable: its opacity never drops below the minimum', () => {

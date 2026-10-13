@@ -15,6 +15,7 @@ export type { AudioState, GameState, Position, Sprite, StageState } from './stat
 export type { Effect } from './state/applyInstant';
 
 export { createSceneRegistry, type SceneRegistry } from './program/sceneRegistry';
+export { hashText } from './program/hashProgram';
 
 export {
   advance,

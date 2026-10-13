@@ -4,6 +4,11 @@ import { StageFrame, type Frame } from '@/entities/frame/ui/Frame';
 
 type Shown = { key: string; frame: Frame };
 
+type SceneViewProps = Frame & {
+  /** Skip is running: frames change at once, as Ren'Py shows no transitions while skipping. */
+  instant?: boolean;
+};
+
 /**
  * The scene — background and characters — with Ren'Py's `dissolve` between frames: the old
  * frame fades out over the new one. The engine already gathers every change up to the next
@@ -11,7 +16,7 @@ type Shown = { key: string; frame: Frame };
  * background, one character gone and another come are one transition, not three. The first
  * frame fades in from black.
  */
-export function SceneView({ background, sprites }: Frame) {
+export function SceneView({ background, sprites, instant = false }: SceneViewProps) {
   const frame = { background, sprites };
   const key = frameKey(frame);
   const [shown, setShown] = useState<Shown>({ key, frame });
@@ -20,7 +25,7 @@ export function SceneView({ background, sprites }: Frame) {
   // A new frame: the one on screen becomes the one dissolving away. Set during render, so the
   // new frame never shows for a moment without the old one over it.
   if (key !== shown.key) {
-    setLeaving(shown);
+    setLeaving(instant ? null : shown);
     setShown({ key, frame });
   }
 

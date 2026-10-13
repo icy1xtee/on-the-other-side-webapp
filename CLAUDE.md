@@ -117,22 +117,29 @@ src/app/stores  RootStore (wires the stores; the main menu's art), UiStore (scre
               ids; the engine's audio effects are played by `audioEffects.ts`), SaveStore (the
               autosave written on every line and choice, "Продолжить" resumes from it; the play
               time — a clock the game screen runs while the player is there), ReadingStore (how
-              far the line on screen is read: typed out or not, the prompt read or not; the one
-              `requestAdvance`, keys 1–9), SettingsStore (volumes, mute, text speed and size,
-              panel opacity, language — `ots:settings`, apart from the save)
+              far the line on screen is read: typed out or not, the prompt read or not, read in
+              an earlier pass or not; the one `requestAdvance`, keys 1–9; Auto and Skip as in
+              Ren'Py — what they do next is `nextStep`, the UI's timer calls `step()`),
+              PersistentStore (Ren'Py's `persistent`: the lines read, keyed by scene and a hash of
+              the Russian line — `ots:persistent`, outlives every playthrough), SettingsStore
+              (volumes, mute, text speed and size, Auto's pause, what Skip passes, panel opacity,
+              language — `ots:settings`, apart from the save)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
 src/shared/lib/storage.ts  localStorage that never throws (blocked, private, full → no saves,
               the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:`
 src/shared/lib/audio.ts  the only file that knows howler
 src/features/advance-dialogue  input into ReadingStore's commands: click on the frame (not on
-              system controls), Space/Enter → requestAdvance; keys 1–9; Esc → the game menu;
+              system controls), Space/Enter → requestAdvance; keys 1–9; Tab → Skip on and off
+              (unless the focus is on a control), Ctrl → Skip while held; Esc → the game menu;
               nothing reaches the game while a window is open. Runs the typewriter
-              (shared/lib/useTypewriter, rAF), which tells the store when a line has typed out
+              (shared/lib/useTypewriter, rAF), which tells the store when a line has typed out,
+              and Auto's and Skip's timer (useReadingModes) while the player is in the game
 src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
               it in a box of any shape (the Continue card; save slots later)
 src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
               `dissolve` (0.5 s) whenever the frame changes — the engine already gathers every
-              change up to the next line into one state, so it is one transition
+              change up to the next line into one state, so it is one transition. None while
+              skipping
 src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("Настройки"
               now; history, save and load with their stages), "Главное меню" at the foot in
               the game; on `shared/ui/Modal` (Esc and a click outside close it, caught before the
@@ -140,15 +147,16 @@ src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail 
 src/features/change-settings  SettingsSection: the settings' tabs and rows, the game menu's part
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
               dialogue panel (widgets/dialogue-box renders it in place of the caret)
-src/widgets   also: dialogue-box (namebox, line, icon buttons, meta line), game-header,
-              continue-card, confirm-dialog, notice (the toast), stage
+src/widgets   also: dialogue-box (namebox, line, icon buttons — Auto and Skip pressed while on,
+              meta line), mode-indicator (AUTO ▸ / SKIP ▸▸), game-header, continue-card,
+              confirm-dialog, notice (the toast), stage
 src/content   the story: ids, speakers, variables, assets (files behind ids; the menu's art),
               scene titles, factories (dsl.ts), scenes
 src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
               dev server; `?dev=<scene>` starts from any scene. Left out of production builds
 src/assets    art and music files (WebP / SVG / MP3)
 e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
-              (click and digit), Continue after a reload, reading at a speed
+              (click and digit), Continue after a reload, reading at a speed, Auto and Skip
 .github/workflows/ci.yml  CI on PRs into main: the checks above in one job, e2e in another
 ```
 

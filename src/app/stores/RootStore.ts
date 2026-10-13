@@ -2,6 +2,7 @@ import type { SceneRegistry, VarValue } from '@engine';
 import i18next from 'i18next';
 import { autorun, reaction } from 'mobx';
 import { GameStore } from '@/app/stores/GameStore';
+import { PersistentStore } from '@/app/stores/PersistentStore';
 import type { Presentation } from '@/app/stores/presentation';
 import { ReadingStore } from '@/app/stores/ReadingStore';
 import { SaveStore } from '@/app/stores/SaveStore';
@@ -25,6 +26,8 @@ export type RootStoreOptions = {
   saveSlot: StorageSlot;
   /** Where the settings live — apart from the save: they outlive every playthrough. */
   settingsSlot: StorageSlot;
+  /** Where `persistent` lives — what the player has read, across playthroughs. */
+  persistentSlot: StorageSlot;
   menuArt: MenuArt;
   /** The clock, in milliseconds since the epoch; tests pass their own. */
   now?: () => number;
@@ -34,6 +37,7 @@ export type RootStoreOptions = {
 export class RootStore {
   readonly ui = new UiStore();
   readonly settings: SettingsStore;
+  readonly persistent: PersistentStore;
   readonly saves: SaveStore;
   readonly game: GameStore;
   readonly reading: ReadingStore;
@@ -48,12 +52,14 @@ export class RootStore {
       audio,
       saveSlot,
       settingsSlot,
+      persistentSlot,
       menuArt,
       now,
     } = options;
     this.options = options;
     this.menuArt = menuArt;
     this.settings = new SettingsStore(settingsSlot);
+    this.persistent = new PersistentStore(persistentSlot);
     this.saves = new SaveStore({
       registry,
       variableDefaults,
@@ -70,7 +76,18 @@ export class RootStore {
       saves: this.saves,
       onEnd: this.toMainMenu,
     });
-    this.reading = new ReadingStore(this.game, this.settings);
+    this.reading = new ReadingStore(this.game, this.settings, this.persistent);
+
+    // Auto and Skip run only while the player is in the game with no window over it: the game
+    // menu, the main menu — and so the end of the game — stop them.
+    reaction(
+      () => this.ui.screen === 'game' && this.ui.overlay === null,
+      (inGame) => {
+        if (!inGame) {
+          this.reading.stopModes();
+        }
+      },
+    );
 
     // Settings apply at once: the volumes while a slider moves, the language on a click.
     autorun(() => audio.setVolumes(this.settings.volumes));

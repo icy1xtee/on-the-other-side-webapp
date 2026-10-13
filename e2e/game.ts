@@ -7,6 +7,8 @@ export const demo = {
   firstLine: 'Дождь не прекращается с вечера. Комнату освещают только мониторы.',
   /** A few lines in: somewhere for Continue to come back to. */
   laterLine: 'А мне здесь нравится. Даже тишина какая-то своя.',
+  /** The last line before the choice. */
+  beforeChoice: 'С другой стороны чего?..',
   choice: {
     prompt: 'Он ждёт ответа. Что будем делать?',
     options: ['Открыть дверь', 'Спросить, кто там', 'Промолчать'],
@@ -16,24 +18,33 @@ export const demo = {
       'Кто вы? Назовитесь.',
       'Мы не отвечаем. Только дождь и тиканье часов.',
     ],
+    /** And the second. */
+    branchesNext: [
+      'Эй! Есть тут кто-нибудь?',
+      'Ты меня знаешь, Мила. Просто давно не слышала.',
+      'Я подожду внизу. Как всегда.',
+    ],
   },
 } as const;
 
 /**
- * Opens the main menu reading at `textCps` characters a second — by default 0, lines shown at
- * once, so the tests don't wait for the typewriter.
+ * Opens the main menu with these settings stored first — lines shown at once unless they say
+ * otherwise, so the tests don't wait for the typewriter.
  */
-export async function openMenu(page: Page, textCps = 0) {
+export async function openMenu(page: Page, settings: Record<string, unknown> = {}) {
   // Runs before every load, reloads included; the settings are all the tests change.
-  await page.addInitScript((cps) => {
-    localStorage.setItem('ots:settings', JSON.stringify({ textCps: cps }));
-  }, textCps);
+  await page.addInitScript(
+    (stored) => {
+      localStorage.setItem('ots:settings', JSON.stringify(stored));
+    },
+    { textCps: 0, ...settings },
+  );
   await page.goto('/');
 }
 
 /** From a fresh browser: the menu, "Новая игра", the first line. */
-export async function startNewGame(page: Page, textCps = 0) {
-  await openMenu(page, textCps);
+export async function startNewGame(page: Page, settings: Record<string, unknown> = {}) {
+  await openMenu(page, settings);
   await page.getByRole('button', { name: 'Новая игра' }).click();
   await expect(line(page, demo.firstLine)).toBeVisible();
 }
