@@ -3,6 +3,7 @@ import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { SettingsSection } from '@/features/change-settings/SettingsSection';
+import { ControlsSection } from '@/features/view-controls/ControlsSection';
 import { SlotsSection } from '@/features/save-slots/SlotsSection';
 import { HistorySection } from '@/features/view-history/HistorySection';
 import type { MenuSection } from '@/shared/config/gameMenu';
@@ -75,6 +76,7 @@ export function GameMenu({
         {section === 'load' && <SlotsSection mode="load" />}
         {section === 'history' && <HistorySection />}
         {section === 'settings' && <SettingsSection onDone={onClose} />}
+        {section === 'controls' && <ControlsSection />}
       </Content>
       {dialog}
     </Window>

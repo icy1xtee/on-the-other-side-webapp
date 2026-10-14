@@ -103,6 +103,12 @@ export const theme = {
     binBackground: 'rgba(8, 11, 17, 0.84)',
     binBorder: 'rgba(255, 255, 255, 0.14)',
     binFocusRing: 'rgba(226, 140, 126, 0.55)',
+    /** A key drawn as a key in «Управление»; lit, it takes the chosen teal. */
+    keycapText: '#c9cfd9',
+    keycapBackground: 'rgba(255, 255, 255, 0.045)',
+    keycapBorder: 'rgba(255, 255, 255, 0.12)',
+    /** The cap's lower edge, its depth. */
+    keycapEdge: 'rgba(0, 0, 0, 0.4)',
   },
   surfaces: {
     stage:
@@ -153,6 +159,10 @@ export const theme = {
     /** The glow of a teal dot: a lit choice option, a toast. */
     dot: '0 0 10px rgba(124, 195, 214, 0.7)',
     dangerDot: '0 0 10px rgba(224, 154, 143, 0.6)',
+    /** A key held down while «Управление» is open. */
+    keycapLit: '0 0 14px rgba(110, 190, 215, 0.45)',
+    /** The same glow for the mouse glyph — a `filter`, it follows the drawing. */
+    glyphLit: 'drop-shadow(0 0 5px rgba(124, 195, 214, 0.75))',
   },
   typography: {
     fontFamily: "'Geist', system-ui, sans-serif",
@@ -189,6 +199,9 @@ export const theme = {
     emptySlotSize: 13.5,
     valueSize: 11,
     voiceSize: 9,
+    keycapSize: 11,
+    controlsGroupSize: 10,
+    controlsActionSize: 14,
   },
   header: {
     height: 68,
@@ -374,6 +387,32 @@ export const theme = {
     controlWidth: 300,
     valueWidth: 58,
     footerPaddingY: 16,
+  },
+  /**
+   * «Управление»: each group's name in a column on the left, its actions in rows beside it, the
+   * keys and the mouse on the right.
+   */
+  controls: {
+    paddingTop: 16,
+    paddingBottom: 20,
+    hintGap: 14,
+    groupWidth: 112,
+    groupGapX: 20,
+    groupPaddingY: 10,
+    rowPaddingY: 5,
+    rowGapX: 16,
+    inputGap: 8,
+  },
+  keycap: {
+    height: 26,
+    minWidth: 26,
+    paddingX: 8,
+    radius: 6,
+    /** The lower edge: how deep the cap looks. */
+    edge: 2,
+    /** «Пробел», a long key. */
+    wideWidth: 88,
+    chipPaddingX: 11,
   },
   actionButton: {
     height: 32,

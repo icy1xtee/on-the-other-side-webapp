@@ -4,6 +4,7 @@ import type { RootStore } from '@/app/stores/RootStore';
 import { GlobalStyle } from '@/app/styles/global';
 import { theme } from '@/app/styles/theme';
 import { GamePage } from '@/pages/game/GamePage';
+import { useControlsKey } from '@/features/view-controls/useControlsKey';
 import { MainMenuPage } from '@/pages/main-menu/MainMenuPage';
 import { StoreProvider } from '@/shared/lib/stores/StoreProvider';
 import { useStores } from '@/shared/lib/stores/useStores';
@@ -25,6 +26,7 @@ export default function App({ rootStore }: AppProps) {
 
 const Screens = observer(function Screens() {
   const { ui } = useStores();
+  useControlsKey();
 
   switch (ui.screen) {
     case 'menu':

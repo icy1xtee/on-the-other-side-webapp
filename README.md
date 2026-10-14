@@ -4,11 +4,13 @@ A visual novel built as a web application. React + TypeScript on Vite, MobX for 
 styled-components for styles, i18next for Russian and English. The story is written as typed
 TypeScript modules, and the engine grows out of what the game actually needs.
 
-**Status:** version 0.1 is done — a playable demo: lines that type out, choices with branches
-and variables, an autosave with Continue, music, settings (volume, text speed, language) and
-scene transitions. Target browser: Chrome.
-See [the 0.1 plan](.claude/plan-0.1.md) and its [progress log](.claude/tasks/version-0.1/progress.md);
-next is [0.2](.claude/plan-0.2.md).
+**Status:** version 0.2 is done — the genre's interface on a three-scene demo: Auto and Skip,
+the history and rollback, six save slots besides the autosave, transitions (`fade`, `move`,
+`vpunch`), music in the menu and sounds in the scenes, settings, and a Controls screen. 0.1 made
+the playable core: lines that type out, choices with branches and variables, Continue, music.
+Target browser: Chrome. See the plans — [0.1](.claude/plan-0.1.md), [0.2](.claude/plan-0.2.md) —
+and their progress logs: [0.1](.claude/tasks/version-0.1/progress.md),
+[0.2](.claude/tasks/version-0.2/progress.md).
 
 ## Requirements
 
@@ -52,7 +54,7 @@ src/
   assets/    backgrounds, characters, portraits, music, sounds (sounds/CREDITS.md — where they
              come from)
 e2e/         Playwright smoke tests: a playthrough, the choice, Continue after a reload, rollback,
-             the history, save slots, a line waiting for a transition
+             the history, save slots, a line waiting for a transition, the Controls screen
 ```
 
 ## Playing
@@ -65,14 +67,15 @@ and stops at a choice. «Назад», the wheel up or Page Up — back to the l
 pick again; the wheel down or Page Down — forward along the way read. «История» lists what has
 been read and chosen. The game saves itself on every line; «Продолжить» in the menu picks it up.
 «Сохранить» puts the game into one of six slots; «Загрузить» — here or in the main menu — brings
-one back, its history and the way back included. The music starts on the first click or key: the
-browser keeps a page silent until then.
+one back, its history and the way back included. F1 — «Управление»: every key and what it does;
+a key pressed there lights up and the game doesn't see it. The music starts on the first click or
+key: the browser keeps a page silent until then.
 
 ## Docs
 
 - [Project brief](.claude/project-brief.md) — what we build and why
 - [Plan 0.1](.claude/plan-0.1.md) — decisions, architecture, stages
-- [Plan 0.2](.claude/plan-0.2.md) — what comes next
+- [Plan 0.2](.claude/plan-0.2.md) — the genre's interface
 - [Engine research](.claude/engine-research.md) — what was taken from Ren'Py and ink, and why
 - Stage tasks and progress, per version: [0.1](.claude/tasks/version-0.1/),
   [0.2](.claude/tasks/version-0.2/); [tech debt](.claude/tasks/tech-debt.md) across versions
