@@ -44,13 +44,18 @@ export const GamePage = observer(function GamePage() {
 
   const comingSoon = (feature: string) => ui.showNotice(t('notice.comingSoon', { feature }));
 
-  // Auto and Skip switch their modes. The game saves itself on every line; the Save button does it
-  // at once and says so. The rest come with their stages of this version.
+  // «Назад» rolls back, Auto and Skip switch their modes, «История» opens the history. The game
+  // saves itself on every line; the Save button does it at once and says so. Load comes with the
+  // save slots.
   const onSystemAction = (action: SystemAction) => {
-    if (action === 'auto') {
+    if (action === 'back') {
+      reading.rollBack();
+    } else if (action === 'auto') {
       reading.toggleAuto();
     } else if (action === 'skip') {
       reading.toggleSkip();
+    } else if (action === 'history') {
+      ui.openGameMenu('history');
     } else if (action === 'save') {
       const saved = saves.saveNow();
       ui.showNotice(saved ? t('notice.saved') : t('notice.saveFailed'), saved ? 'info' : 'error');
@@ -66,6 +71,7 @@ export const GamePage = observer(function GamePage() {
   if (reading.skipping) {
     pressed.add('skip');
   }
+  const inactive = new Set<SystemAction>(game.canRollBack ? [] : ['back']);
 
   const overlay = ui.overlay;
 
@@ -73,7 +79,7 @@ export const GamePage = observer(function GamePage() {
     <Stage
       modal={overlay !== null}
       onClick={onStageClick}
-      scene={<SceneView {...game.frame} instant={reading.skipping} />}
+      scene={<SceneView {...game.frame} instant={reading.skipping || game.travelled} />}
       ui={
         <>
           <GameHeader
@@ -92,6 +98,7 @@ export const GamePage = observer(function GamePage() {
               meta={<PlayMeta />}
               onSystemAction={onSystemAction}
               pressed={pressed}
+              inactive={inactive}
               onVoice={() => ui.showNotice(t('notice.voiceLater'))}
             />
           )}

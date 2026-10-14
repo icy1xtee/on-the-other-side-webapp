@@ -58,8 +58,10 @@ e2e/         Playwright smoke tests: a playthrough, the choice, Continue after a
 Click or Space / Enter — next line (a click while a line types shows it whole). At a choice:
 read the prompt, then click an option or press 1–9. Esc — settings, with the way back to the
 main menu. «Авто» turns the pages by itself; «Пропуск» (or Tab, or Ctrl held) skips what has
-been read, in this playthrough or an earlier one, and stops at a choice. The game saves itself on
-every line; «Продолжить» in the menu picks it up.
+been read, in this playthrough or an earlier one, and stops at a choice. «Назад», the wheel up or
+Page Up — back to the line before, a choice to pick again; the wheel down or Page Down — forward
+along the way read. «История» lists what has been read and chosen. The game saves itself on every
+line; «Продолжить» in the menu picks it up.
 
 ## Docs
 

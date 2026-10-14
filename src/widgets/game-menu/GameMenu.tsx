@@ -3,6 +3,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { SettingsSection } from '@/features/change-settings/SettingsSection';
+import { HistorySection } from '@/features/view-history/HistorySection';
 import type { MenuSection } from '@/shared/config/gameMenu';
 import { u } from '@/shared/lib/units';
 import { Modal } from '@/shared/ui/Modal';
@@ -59,6 +60,7 @@ export function GameMenu({ section, sections, onSection, onClose, onMainMenu }: 
             <X />
           </Close>
         </Head>
+        {section === 'history' && <HistorySection />}
         {section === 'settings' && <SettingsSection onDone={onClose} />}
       </Content>
     </Window>

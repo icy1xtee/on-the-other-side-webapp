@@ -14,17 +14,28 @@ import type { AudioOutput } from '@/shared/lib/audio';
 import { playEffects } from './audioEffects';
 import {
   frameView,
+  historyView,
   lineView,
   optionViews,
   quotedLine,
   sceneTitle,
   type FrameView,
+  type HistoryView,
   type LineView,
   type OptionView,
   type Presentation,
   type QuotedLine,
 } from './presentation';
 import type { SaveStore } from './SaveStore';
+import {
+  arrive,
+  goesTheSameWay,
+  rollBack,
+  rollForward,
+  shownEntries,
+  startTimeline,
+  type Timeline,
+} from './timeline';
 
 /** What "Продолжить" leads back to, for the menu's card. Text is the story's source, untranslated. */
 export type ContinuePreview = {
@@ -53,10 +64,20 @@ export type GameStoreOptions = {
  * snapshot rather than to deep mutations, and a save is simply `state`. Its views turn ids into
  * files and names (`presentation.ts`), so the UI never sees content ids; what the engine met on
  * the way is played (`audioEffects.ts`) and the line reached is autosaved (`SaveStore`).
+ *
+ * It also keeps the way the player has come (`timeline.ts`): the history read so far and the
+ * checkpoints rollback returns to, as in Ren'Py.
  */
 export class GameStore {
   state: GameState | null = null;
   interaction: Interaction | null = null;
+  /** The way taken in this game: the history and the checkpoints; null before a game. */
+  timeline: Timeline | null = null;
+  /**
+   * The line on screen was reached by rolling back or forward, not by playing on: the frame
+   * changes at once, as rollback shows no transitions.
+   */
+  travelled = false;
   /** Counts what the player has been shown, so a key changes even on coming back to a step. */
   private turn = 0;
   private readonly options: GameStoreOptions;
@@ -65,9 +86,30 @@ export class GameStore {
     this.options = options;
     makeAutoObservable<this, 'options'>(
       this,
-      { state: observable.ref, interaction: observable.ref, options: false },
+      {
+        state: observable.ref,
+        interaction: observable.ref,
+        timeline: observable.ref,
+        options: false,
+      },
       { autoBind: true },
     );
+  }
+
+  /** There is a line or choice to roll back to. */
+  get canRollBack(): boolean {
+    return (this.timeline?.current ?? 0) > 0;
+  }
+
+  /** There is a way forward the player rolled back over. */
+  get canRollForward(): boolean {
+    const timeline = this.timeline;
+    return timeline !== null && timeline.current < timeline.checkpoints.length - 1;
+  }
+
+  /** The lines read and the choices made in this game, oldest first: the History section. */
+  get history(): HistoryView[] {
+    return historyView(this.timeline?.history ?? [], this.options.presentation);
   }
 
   /** The background and the sprites in z-order, as files. */
@@ -113,25 +155,25 @@ export class GameStore {
 
   newGame() {
     this.options.saves.startPlaying(0);
-    this.apply(startGame(this.options.registry, this.options.variableDefaults));
+    this.apply(startGame(this.options.registry, this.options.variableDefaults), { fresh: true });
   }
 
   /**
    * Picks the game up where it was left: on the same line or choice, with the same stage, vars
    * and music. Runs just that one statement — no replay. False when there is nothing to resume.
+   * The way back isn't in the save yet (stage 4): rollback starts afresh from here.
    */
   continueGame(): boolean {
-    const { saves, registry, audio, presentation } = this.options;
+    const { saves, registry } = this.options;
     const resumed = saves.resumable;
     if (!resumed) {
       return false;
     }
     saves.startPlaying(resumed.playTime);
-    this.apply(run(resumed.state, registry));
+    this.apply(run(resumed.state, registry), { fresh: true });
     // Nothing was re-executed, so nothing re-played: the music comes back from the state.
     // `ifChanged`: coming back from the menu to the same scene, the track isn't restarted.
-    const music = resumed.state.audio.music;
-    playEffects([{ type: 'music', asset: music, ifChanged: true }], audio, presentation.assets);
+    this.restoreMusic(resumed.state);
     return true;
   }
 
@@ -148,20 +190,87 @@ export class GameStore {
     if (!this.state || this.interaction?.type !== 'choice') {
       return;
     }
-    this.apply(choose(this.state, this.options.registry, index));
+    const option = this.interaction.options[index];
+    this.apply(choose(this.state, this.options.registry, index), {
+      chosen: option && { index, text: option.text },
+    });
   }
 
-  private apply(result: RunResult) {
+  /**
+   * Back to the previous line or choice — Ren'Py's rollback: the stage, vars and music as they
+   * were there, at once, without the sounds met on the way; a choice can be made again. False
+   * when there is no way back.
+   */
+  rollBack(): boolean {
+    return this.travel(this.timeline && rollBack(this.timeline));
+  }
+
+  /**
+   * Forward along the way already taken — a choice passed with the same pick — the way rollback
+   * goes back. False at the newest line.
+   */
+  rollForward(): boolean {
+    return this.travel(this.timeline && rollForward(this.timeline));
+  }
+
+  private travel(timeline: Timeline | null): boolean {
+    const checkpoint = timeline?.checkpoints[timeline.current];
+    if (!timeline || !checkpoint) {
+      return false;
+    }
+    const result = run(checkpoint.state, this.options.registry);
+    this.timeline = timeline;
+    this.travelled = true;
+    this.turn += 1;
+    this.state = result.state;
+    this.interaction = result.interaction;
+    this.restoreMusic(result.state);
+    this.options.saves.autosave(result.state);
+    return true;
+  }
+
+  /**
+   * The story moved on by itself or by the player: plays what it met on the way, writes the new
+   * line into the way taken — the same way as before keeps the way forward — and autosaves it.
+   */
+  private apply(
+    result: RunResult,
+    { fresh = false, chosen }: { fresh?: boolean; chosen?: { index: number; text: string } } = {},
+  ) {
     const { saves, audio, presentation, onEnd } = this.options;
     this.turn += 1;
+    this.travelled = false;
     this.state = result.state;
     this.interaction = result.interaction;
     playEffects(result.effects, audio, presentation.assets);
     if (result.interaction.type === 'end') {
+      this.timeline = null;
       saves.forget();
       onEnd();
-    } else {
-      saves.autosave(result.state);
+      return;
     }
+    const checkpoint = {
+      state: result.state,
+      entries: [
+        ...(chosen ? [{ kind: 'choice' as const, text: chosen.text }] : []),
+        ...shownEntries(result.interaction),
+      ],
+    };
+    const timeline = this.timeline;
+    if (fresh || !timeline) {
+      this.timeline = startTimeline(checkpoint);
+    } else if (goesTheSameWay(timeline, chosen?.index)) {
+      this.timeline = rollForward(timeline);
+    } else {
+      this.timeline = arrive(timeline, checkpoint, chosen?.index);
+    }
+    saves.autosave(result.state);
+  }
+
+  /** The track a state plays, restarted only if another one plays now. */
+  private restoreMusic(state: GameState) {
+    const { audio, presentation } = this.options;
+    const music = state.audio.music;
+    playEffects([{ type: 'music', asset: music, ifChanged: true }], audio, presentation.assets);
   }
 }

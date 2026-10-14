@@ -1,4 +1,5 @@
 import type { GameState, Interaction, SpritePosition } from '@engine';
+import type { HistoryEntry } from './timeline';
 
 // What the player sees, worked out from the engine's state: ids become files and names. Pure
 // functions over plain data — the stores call them from their computed views, the tests call
@@ -127,4 +128,20 @@ function shownLine(interaction: Interaction | null) {
 
 function speakerName(speaker: string, presentation: Presentation): string {
   return presentation.speakers[speaker]?.name ?? speaker;
+}
+
+/** An entry of the History section: a speaker by name, the text untranslated. */
+export type HistoryView =
+  | { kind: 'line'; speaker: string; text: string }
+  | { kind: 'narration'; text: string }
+  | { kind: 'choice'; text: string };
+
+/** The history as the History section lists it, oldest first. */
+export function historyView(
+  entries: readonly HistoryEntry[],
+  presentation: Presentation,
+): HistoryView[] {
+  return entries.map((entry) =>
+    entry.kind === 'line' ? { ...entry, speaker: speakerName(entry.speaker, presentation) } : entry,
+  );
 }

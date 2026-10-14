@@ -18,8 +18,9 @@ import { RevealButton, RevealGroup } from '@/shared/ui/RevealButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
 
 // System controls from the design, as icons whose names open beside them. What they do is up to
-// the page: Auto and Skip switch modes and stay pressed while theirs runs (`aria-pressed`), Save
-// saves at once, the rest come one by one in this version; the choice history is not there yet.
+// the page: «Назад» rolls back (inactive with nowhere to go), Auto and Skip switch modes and stay
+// pressed while theirs runs (`aria-pressed`), «История» opens the history, Save saves at once;
+// Load comes with the save slots, and the choice history is not there yet.
 // Clicks on any of them never advance the dialogue.
 const SYSTEM_ACTIONS = [
   ['back', Undo2],
@@ -56,6 +57,8 @@ type DialogueBoxProps = {
   meta: ReactNode;
   /** A system button was pressed. */
   onSystemAction: (action: SystemAction) => void;
+  /** Buttons that can't be used just now: «Назад» with nowhere to go back to. */
+  inactive: ReadonlySet<SystemAction>;
   /** The toggles that are on: Auto or Skip while its mode runs. */
   pressed: ReadonlySet<SystemAction>;
   /** The voice button beside the name. */
@@ -79,6 +82,7 @@ export function DialogueBox({
   meta,
   onSystemAction,
   pressed,
+  inactive,
   onVoice,
 }: DialogueBoxProps) {
   const { t } = useTranslation();
@@ -122,13 +126,13 @@ export function DialogueBox({
       <Actions role="toolbar" aria-label={t('dialogue.actions')}>
         {SYSTEM_ACTIONS.map(([action, Icon]) => {
           const name = t(`dialogue.action.${action}`);
-          const unavailable = UNAVAILABLE_ACTIONS.has(action);
+          const locked = UNAVAILABLE_ACTIONS.has(action);
           return (
             <RevealButton
               key={action}
-              label={unavailable ? t('dialogue.locked', { action: name }) : name}
+              label={locked ? t('dialogue.locked', { action: name }) : name}
               icon={<Icon />}
-              unavailable={unavailable}
+              unavailable={locked || inactive.has(action)}
               aria-pressed={TOGGLE_ACTIONS.has(action) ? pressed.has(action) : undefined}
               onClick={() => onSystemAction(action)}
             />

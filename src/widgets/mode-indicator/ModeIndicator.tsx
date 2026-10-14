@@ -29,7 +29,7 @@ const Plaque = styled.div`
   align-items: center;
   height: ${({ theme }) => u(theme.modeIndicator.height)};
   padding: 0 ${({ theme }) => u(theme.modeIndicator.paddingX)};
-  border: 1px solid ${({ theme }) => theme.colors.modeBorder};
+  border: 1px solid ${({ theme }) => theme.colors.accentBorderQuiet};
   border-radius: ${({ theme }) => u(theme.modeIndicator.radius)};
   background: ${({ theme }) => theme.surfaces.modeIndicator};
   backdrop-filter: blur(8px);

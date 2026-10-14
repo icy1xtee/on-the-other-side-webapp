@@ -42,6 +42,31 @@ export const fork = createSceneRegistry(
   'intro',
 );
 
+/** Lines, a sound and a new track on the way, then a choice: a way to roll back along. */
+export const path = createSceneRegistry(
+  {
+    intro: [
+      { type: 'music', asset: 'theme' },
+      { type: 'scene', background: 'room' },
+      { type: 'say', text: 'Первая' },
+      { type: 'sfx', asset: 'door' },
+      { type: 'music', asset: 'night' },
+      { type: 'show', tag: 'mila', emotion: 'happy', at: 'left' },
+      { type: 'say', speaker: 'mila', text: 'Вторая' },
+      {
+        type: 'choice',
+        prompt: { speaker: 'mila', text: 'Куда?' },
+        options: [
+          { text: 'Налево', then: [{ type: 'say', text: 'Слева' }] },
+          { text: 'Направо', then: [{ type: 'say', text: 'Справа' }] },
+        ],
+      },
+      { type: 'say', text: 'Последняя' },
+    ],
+  },
+  'intro',
+);
+
 export const presentation: Presentation = {
   speakers: { mila: { name: 'Мила' } },
   sceneTitles: { intro: 'Начало' },
@@ -49,7 +74,7 @@ export const presentation: Presentation = {
     backgrounds: { room: '/room.webp' },
     characters: { mila: { happy: '/mila-happy.webp' } },
     portraits: { mila: '/mila-portrait.webp' },
-    music: { theme: '/theme.mp3' },
+    music: { theme: '/theme.mp3', night: '/night.mp3' },
     sounds: { door: '/door.mp3' },
   },
 };
