@@ -53,8 +53,8 @@ type RevealButtonProps = Omit<ComponentProps<'button'>, 'children' | 'disabled'>
   variant?: Variant;
   round?: boolean;
   /**
-   * Its feature isn't there yet: greyed out and inert, but still focusable, and its label still
-   * opens — the player can read what it will be.
+   * Can't be used: its feature isn't there yet, or it has nothing to do now. Greyed out and inert,
+   * but still focusable, and its label still opens — the player can read what it is.
    */
   unavailable?: boolean;
 };

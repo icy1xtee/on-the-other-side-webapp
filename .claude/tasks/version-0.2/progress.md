@@ -17,7 +17,7 @@
 | 0 | Новые макеты | готов | [00-design.md](./00-design.md) · [реестр](./task-registry/00-design/) |
 | 1 | Фундамент | готов | [01-foundation.md](./01-foundation.md) · [реестр](./task-registry/01-foundation/) |
 | 2 | Auto и Skip | готов | [02-auto-skip.md](./02-auto-skip.md) · [реестр](./task-registry/02-auto-skip/) |
-| 3 | History и rollback | не начат | [03-history-rollback.md](./03-history-rollback.md) · [реестр](./task-registry/03-history-rollback/) |
+| 3 | History и rollback | готов | [03-history-rollback.md](./03-history-rollback.md) · [реестр](./task-registry/03-history-rollback/) |
 | 4 | Слоты | не начат | [04-save-slots.md](./04-save-slots.md) · [реестр](./task-registry/04-save-slots/) |
 | 5 | Анимации | не начат | [05-animations.md](./05-animations.md) · [реестр](./task-registry/05-animations/) |
 | 6 | Звук и техдолг | не начат | [06-sound-tech-debt.md](./06-sound-tech-debt.md) · [реестр](./task-registry/06-sound-tech-debt/) |
@@ -28,6 +28,21 @@
 ## Журнал
 
 Записи добавляются в начало.
+
+### Этап 3 — History и rollback · 2026-10-14 · готов
+
+Ветка `feat/0.2-stage-3-history-rollback`, одним заходом; подробности — в
+[реестре](./task-registry/03-history-rollback/).
+
+**Сделано:**
+- **Путь игрока** — контрольные точки на каждую реплику и развилку (128 шагов) и журнал
+  (250 записей) вне снапшотов: точка помнит свои записи.
+- **Откат** — «Назад», колесо, PageUp / PageDown: сразу, без звуков, музыка из состояния;
+  развилку можно пройти иначе, вперёд — прежним выбором.
+- **«История»** — раздел игрового меню по макету, переводится на лету.
+
+**Проверено:** `lint`, `typecheck`, `test` (196), `format:check`, `build`, `e2e` (11). Спорные
+моменты (8) Павел принял все.
 
 ### Этап 2 — Auto и Skip · 2026-10-13 · готов
 

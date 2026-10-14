@@ -5,7 +5,7 @@ import { StageFrame, type Frame } from '@/entities/frame/ui/Frame';
 type Shown = { key: string; frame: Frame };
 
 type SceneViewProps = Frame & {
-  /** Skip is running: frames change at once, as Ren'Py shows no transitions while skipping. */
+  /** Skipping, rolling back or forward: frames change at once, as Ren'Py shows no transitions then. */
   instant?: boolean;
 };
 

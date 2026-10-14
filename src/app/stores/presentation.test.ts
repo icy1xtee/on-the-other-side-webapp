@@ -1,6 +1,13 @@
 import { advance, startGame } from '@engine';
 import { describe, expect, it } from 'vitest';
-import { frameView, lineView, optionViews, quotedLine, sceneTitle } from './presentation';
+import {
+  frameView,
+  historyView,
+  lineView,
+  optionViews,
+  quotedLine,
+  sceneTitle,
+} from './presentation';
 import { fork, presentation, registry } from './testStory';
 
 const firstLine = startGame(registry, { trust: 0 });
@@ -57,5 +64,24 @@ describe('presentation', () => {
       speaker: null,
       text: 'Последняя',
     });
+  });
+});
+
+describe('historyView', () => {
+  it('names the speakers of the history, the text left as written', () => {
+    expect(
+      historyView(
+        [
+          { kind: 'line', speaker: 'mila', text: 'Привет' },
+          { kind: 'narration', text: 'Тихо' },
+          { kind: 'choice', text: 'Налево' },
+        ],
+        presentation,
+      ),
+    ).toEqual([
+      { kind: 'line', speaker: 'Мила', text: 'Привет' },
+      { kind: 'narration', text: 'Тихо' },
+      { kind: 'choice', text: 'Налево' },
+    ]);
   });
 });

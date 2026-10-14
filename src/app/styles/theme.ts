@@ -29,8 +29,10 @@ export const theme = {
     accent: '#7cc3d6',
     accentFill: '#5fb0c6',
     accentText: '#a6dbe6',
-    /** The AUTO / SKIP plaque's edge. */
-    modeBorder: 'rgba(110, 190, 210, 0.28)',
+    /** A quiet teal edge: the AUTO / SKIP plaque, the history's choice mark. */
+    accentBorderQuiet: 'rgba(110, 190, 210, 0.28)',
+    /** The history's choice mark. */
+    accentTextQuiet: '#6fa5b3',
     focusRing: 'rgba(124, 195, 214, 0.5)',
     panelBorder: 'rgba(255, 255, 255, 0.08)',
     windowBorder: 'rgba(255, 255, 255, 0.09)',
@@ -160,6 +162,10 @@ export const theme = {
     cardLineSize: 13.5,
     toastSize: 13.5,
     modeSize: 10.5,
+    historyNameSize: 15,
+    historyTextSize: 15.5,
+    historyChoiceSize: 14,
+    historyMarkSize: 9.5,
     valueSize: 11,
     voiceSize: 9,
   },
@@ -276,7 +282,7 @@ export const theme = {
     thumbRadius: 12,
     lineGap: 7,
   },
-  /** Ren'Py's game menu: the settings now; history and saves later. */
+  /** Ren'Py's game menu: the history and the settings now, the saves with stage 4. */
   gameMenu: {
     width: 960,
     height: 600,
@@ -297,6 +303,18 @@ export const theme = {
     contentPaddingX: 28,
     closeSize: 32,
     closeRadius: 10,
+  },
+  /** The History section: the lines read and the choices made, newest at the bottom. */
+  history: {
+    paddingTop: 14,
+    paddingBottom: 28,
+    gap: 20,
+    maxWidth: 660,
+    nameGap: 5,
+    markGap: 10,
+    markPaddingY: 3,
+    markPaddingX: 7,
+    markRadius: 6,
   },
   settings: {
     tabsPaddingTop: 18,

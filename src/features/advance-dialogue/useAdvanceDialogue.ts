@@ -2,13 +2,15 @@ import { useEffect, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { useTypewriter } from '@/shared/lib/useTypewriter';
+import { WHEEL_START, wheelStep } from '@/shared/lib/wheelSteps';
 import { isSystemControl } from './isSystemControl';
 
 /**
  * Turns the player's clicks and keys into the reading store's commands; how far the line is read
  * and what going on means live there (`ReadingStore`). A click anywhere on the stage, Space or
  * Enter all request the advance; keys 1–9 pick an option once the options are out. Ren'Py's
- * keys for Skip: Tab turns it on and off, Ctrl skips while held. Clicks and keys aimed at system
+ * keys for Skip: Tab turns it on and off, Ctrl skips while held; for rollback: PageUp and the
+ * wheel up go back, PageDown and the wheel down forward. Clicks and keys aimed at system
  * controls belong to those controls; while a window is open over the game, none reach it. Esc
  * opens the game menu, as in Ren'Py: the settings and the way to the main menu are there.
  *
@@ -58,6 +60,16 @@ export function useAdvanceDialogue() {
         }
         return;
       }
+      // Ren'Py's rollback keys; held, they keep going.
+      if (event.key === 'PageUp' || event.key === 'PageDown') {
+        event.preventDefault();
+        if (event.key === 'PageUp') {
+          reading.rollBack();
+        } else {
+          reading.rollForward();
+        }
+        return;
+      }
       // 1–9 pick the options on screen, in the order shown.
       if (/^[1-9]$/.test(event.key)) {
         if (!event.repeat && reading.pickOption(Number(event.key))) {
@@ -86,13 +98,30 @@ export function useAdvanceDialogue() {
       }
     };
     const onBlur = () => reading.holdSkip(false);
+    // The wheel rolls back (up) and forward (down), a notch or a swipe a step. Over an open
+    // window it scrolls the window instead.
+    let wheel = WHEEL_START;
+    const onWheel = (event: WheelEvent) => {
+      if (ui.overlay) {
+        return;
+      }
+      const next = wheelStep(wheel, wheelPixels(event), event.timeStamp);
+      wheel = next.state;
+      if (next.step < 0) {
+        reading.rollBack();
+      } else if (next.step > 0) {
+        reading.rollForward();
+      }
+    };
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('blur', onBlur);
+    window.addEventListener('wheel', onWheel, { passive: true });
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
+      window.removeEventListener('wheel', onWheel);
       reading.holdSkip(false);
     };
   }, [ui, reading]);
@@ -110,4 +139,15 @@ export function useAdvanceDialogue() {
     choiceOptions: reading.choiceOptions,
     onStageClick,
   };
+}
+
+/** The wheel's delta in pixels, whatever unit the browser counts it in. */
+function wheelPixels(event: WheelEvent): number {
+  if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+    return event.deltaY * 33;
+  }
+  if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    return event.deltaY * window.innerHeight;
+  }
+  return event.deltaY;
 }

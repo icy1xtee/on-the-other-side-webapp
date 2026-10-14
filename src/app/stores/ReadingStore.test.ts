@@ -5,7 +5,7 @@ import type { SkipMode } from '@/shared/config/settings';
 import { PersistentStore } from './PersistentStore';
 import { autoForwardMs, ReadingStore, SKIP_DELAY_MS } from './ReadingStore';
 import { memorySlot } from './testDoubles';
-import { createGame, fork } from './testStory';
+import { createGame, fork, path } from './testStory';
 
 type Options = { textCps?: number; autoDelay?: number; skipMode?: SkipMode };
 
@@ -311,5 +311,41 @@ describe('ReadingStore: Skip', () => {
 
     expect(reading.mode).toBeNull();
     expect(reading.skipping).toBe(false);
+  });
+});
+
+describe('ReadingStore: rollback', () => {
+  /** Reads a line typing at the default speed: shows it whole, then goes on. */
+  function readOn(reading: ReadingStore) {
+    reading.requestAdvance();
+    reading.requestAdvance();
+  }
+
+  it('goes back with Auto and Skip off, the line there shown whole at once', () => {
+    const { game, reading } = startReading(path);
+    readOn(reading);
+    reading.toggleAuto();
+
+    reading.rollBack();
+    expect(reading.mode).toBeNull();
+    expect(game.line?.text).toBe('Первая');
+    expect(reading.lineShown).toBe(true);
+  });
+
+  it('comes back to a choice with its options out, to pick again', () => {
+    const { game, reading } = startReading(path);
+    readOn(reading);
+    readOn(reading);
+    readOn(reading);
+    reading.choose(0);
+    expect(game.line?.text).toBe('Слева');
+
+    reading.rollBack();
+    expect(game.line?.text).toBe('Куда?');
+    expect(reading.choiceOptions).toHaveLength(2);
+
+    reading.rollForward();
+    expect(game.line?.text).toBe('Слева');
+    expect(reading.lineShown).toBe(true);
   });
 });

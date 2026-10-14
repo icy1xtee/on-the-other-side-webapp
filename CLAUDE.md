@@ -114,12 +114,16 @@ src/app/stores  RootStore (wires the stores; the main menu's art), UiStore (scre
               notices), GameStore (the game loop: MobX wrapper around the engine — new game,
               continue, advance, choose; its views go through `presentation.ts`, pure functions
               that turn ids into image URLs, names and scene titles, so UI never sees content
-              ids; the engine's audio effects are played by `audioEffects.ts`), SaveStore (the
-              autosave written on every line and choice, "Продолжить" resumes from it; the play
-              time — a clock the game screen runs while the player is there), ReadingStore (how
-              far the line on screen is read: typed out or not, the prompt read or not, read in
-              an earlier pass or not; the one `requestAdvance`, keys 1–9; Auto and Skip as in
-              Ren'Py — what they do next is `nextStep`, the UI's timer calls `step()`),
+              ids; the engine's audio effects are played by `audioEffects.ts`; the way taken —
+              `timeline.ts`, pure functions: a checkpoint per line and choice for rollback, 128
+              back, and the history, 250 entries kept as keys, outside the snapshots),
+              SaveStore (the autosave written on every line and choice, "Продолжить" resumes
+              from it; the play time — a clock the game screen runs while the player is there),
+              ReadingStore (how far the line on screen is read: typed out or not, the prompt read
+              or not, read in an earlier pass or not; the one `requestAdvance`, keys 1–9; Auto
+              and Skip as in Ren'Py — what they do next is `nextStep`, the UI's timer calls
+              `step()`; rolling back and forward shows the line whole, a choice with its options
+              out),
               PersistentStore (Ren'Py's `persistent`: the lines read, keyed by scene and a hash of
               the Russian line — `ots:persistent`, outlives every playthrough), SettingsStore
               (volumes, mute, text speed and size, Auto's pause, what Skip passes, panel opacity,
@@ -130,25 +134,29 @@ src/shared/lib/storage.ts  localStorage that never throws (blocked, private, ful
 src/shared/lib/audio.ts  the only file that knows howler
 src/features/advance-dialogue  input into ReadingStore's commands: click on the frame (not on
               system controls), Space/Enter → requestAdvance; keys 1–9; Tab → Skip on and off
-              (unless the focus is on a control), Ctrl → Skip while held; Esc → the game menu;
-              nothing reaches the game while a window is open. Runs the typewriter
-              (shared/lib/useTypewriter, rAF), which tells the store when a line has typed out,
-              and Auto's and Skip's timer (useReadingModes) while the player is in the game
+              (unless the focus is on a control), Ctrl → Skip while held; PageUp / the wheel up →
+              roll back, PageDown / the wheel down → forward (shared/lib/wheelSteps: a notch or a
+              swipe is a step); Esc → the game menu; nothing reaches the game while a window is
+              open. Runs the typewriter (shared/lib/useTypewriter, rAF), which tells the store
+              when a line has typed out, and Auto's and Skip's timer (useReadingModes) while the
+              player is in the game
 src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
               it in a box of any shape (the Continue card; save slots later)
 src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
               `dissolve` (0.5 s) whenever the frame changes — the engine already gathers every
               change up to the next line into one state, so it is one transition. None while
-              skipping
-src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("Настройки"
-              now; history, save and load with their stages), "Главное меню" at the foot in
-              the game; on `shared/ui/Modal` (Esc and a click outside close it, caught before the
+              skipping or rolling back and forward
+src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("История",
+              "Настройки" now; save and load with the slots), "Главное меню" at the foot in the
+              game; on `shared/ui/Modal` (Esc and a click outside close it, caught before the
               game). From the main menu it opens with fewer sections
 src/features/change-settings  SettingsSection: the settings' tabs and rows, the game menu's part
+src/features/view-history  HistorySection: the lines read and the choices made, the game menu's
+              part, translated as it is shown
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
               dialogue panel (widgets/dialogue-box renders it in place of the caret)
 src/widgets   also: dialogue-box (namebox, line, icon buttons — Auto and Skip pressed while on,
-              meta line), mode-indicator (AUTO ▸ / SKIP ▸▸), game-header, continue-card,
+              «Назад» greyed with nowhere to go back to; meta line), mode-indicator (AUTO ▸ / SKIP ▸▸), game-header, continue-card,
               confirm-dialog, notice (the toast), stage
 src/content   the story: ids, speakers, variables, assets (files behind ids; the menu's art),
               scene titles, factories (dsl.ts), scenes
@@ -156,7 +164,8 @@ src/content/__dev__  test scenes, not part of the game (branching): `?dev=branch
               dev server; `?dev=<scene>` starts from any scene. Left out of production builds
 src/assets    art and music files (WebP / SVG / MP3)
 e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
-              (click and digit), Continue after a reload, reading at a speed, Auto and Skip
+              (click and digit), Continue after a reload, reading at a speed, Auto and Skip,
+              rollback through the choice, the history
 .github/workflows/ci.yml  CI on PRs into main: the checks above in one job, e2e in another
 ```
 

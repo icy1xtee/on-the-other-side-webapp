@@ -2,7 +2,7 @@ import { createSceneRegistry } from '@engine';
 import { autorun } from 'mobx';
 import { describe, expect, it } from 'vitest';
 import { memorySlot } from './testDoubles';
-import { createGame, fork } from './testStory';
+import { createGame, fork, path } from './testStory';
 
 describe('GameStore', () => {
   it('starts the story on the first line, with ids resolved into files and names', () => {
@@ -187,5 +187,128 @@ describe('GameStore audio', () => {
     expect(audio.playMusic).toHaveBeenCalledExactlyOnceWith('/theme.mp3', { ifChanged: true });
     // Nothing on the way to the saved line is re-executed: the door doesn't knock twice.
     expect(audio.playSound).not.toHaveBeenCalled();
+  });
+});
+
+describe('GameStore history', () => {
+  it('keeps the lines read by speaker, the prompt once, and the pick', () => {
+    const { game } = createGame({ registry: path });
+    game.newGame();
+    game.advance();
+    game.advance();
+    game.choose(1);
+
+    expect(game.history).toEqual([
+      { kind: 'narration', text: 'Первая' },
+      { kind: 'line', speaker: 'Мила', text: 'Вторая' },
+      { kind: 'line', speaker: 'Мила', text: 'Куда?' },
+      { kind: 'choice', text: 'Направо' },
+      { kind: 'narration', text: 'Справа' },
+    ]);
+  });
+
+  it('starts over with a new game, and with Continue until saves keep it', () => {
+    const before = createGame({ registry: path });
+    before.game.newGame();
+    before.game.advance();
+    before.game.newGame();
+    expect(before.game.history).toEqual([{ kind: 'narration', text: 'Первая' }]);
+
+    before.game.advance();
+    const { game } = createGame({ registry: path, slot: memorySlot(before.slot.value) });
+    game.continueGame();
+    expect(game.history).toEqual([{ kind: 'line', speaker: 'Мила', text: 'Вторая' }]);
+    expect(game.canRollBack).toBe(false);
+  });
+});
+
+describe('GameStore rollback', () => {
+  /** A game on the choice, past two lines. */
+  function atTheChoice() {
+    const created = createGame({ registry: path });
+    created.game.newGame();
+    created.game.advance();
+    created.game.advance();
+    return created;
+  }
+
+  it('has nowhere to go at the first line', () => {
+    const { game } = createGame({ registry: path });
+    game.newGame();
+    expect(game.canRollBack).toBe(false);
+    expect(game.rollBack()).toBe(false);
+    expect(game.line?.text).toBe('Первая');
+  });
+
+  it('goes back to the line before: its stage and track, no sounds, the history cut', () => {
+    const { game, audio, slot } = createGame({ registry: path });
+    game.newGame();
+    game.advance();
+    expect(audio.playSound).toHaveBeenCalledOnce();
+
+    expect(game.rollBack()).toBe(true);
+    expect(game.line?.text).toBe('Первая');
+    expect(game.frame.sprites).toEqual([]);
+    expect(audio.playMusic).toHaveBeenLastCalledWith('/theme.mp3', { ifChanged: true });
+    expect(audio.playSound).toHaveBeenCalledOnce();
+    expect(game.travelled).toBe(true);
+    expect(game.history).toEqual([{ kind: 'narration', text: 'Первая' }]);
+    // The autosave follows: Continue picks up where the player rolled back to.
+    expect(JSON.parse(slot.value!)).toMatchObject({ position: { step: 2 } });
+  });
+
+  it('rolls forward along the way taken, and stops at the newest line', () => {
+    const { game } = atTheChoice();
+    game.rollBack();
+    expect(game.canRollForward).toBe(true);
+
+    expect(game.rollForward()).toBe(true);
+    expect(game.line?.text).toBe('Куда?');
+    expect(game.canRollForward).toBe(false);
+    expect(game.rollForward()).toBe(false);
+  });
+
+  it('keeps the way forward when the player reads on along it', () => {
+    const { game } = atTheChoice();
+    game.rollBack();
+    game.rollBack();
+    game.advance();
+
+    expect(game.line?.text).toBe('Вторая');
+    expect(game.travelled).toBe(false);
+    expect(game.canRollForward).toBe(true);
+    expect(game.history.map((entry) => entry.text)).toEqual(['Первая', 'Вторая']);
+  });
+
+  it('lets a choice be made again: another pick forgets the way forward, the same keeps it', () => {
+    const { game } = atTheChoice();
+    game.choose(0);
+    game.advance();
+    game.rollBack();
+    game.rollBack();
+    expect(game.line?.text).toBe('Куда?');
+
+    game.choose(0);
+    expect(game.line?.text).toBe('Слева');
+    expect(game.canRollForward).toBe(true);
+
+    game.rollBack();
+    game.choose(1);
+    expect(game.line?.text).toBe('Справа');
+    expect(game.canRollForward).toBe(false);
+    expect(game.history.slice(-2)).toEqual([
+      { kind: 'choice', text: 'Направо' },
+      { kind: 'narration', text: 'Справа' },
+    ]);
+  });
+
+  it('rolls forward through a choice with the pick made before', () => {
+    const { game } = atTheChoice();
+    game.choose(1);
+    game.rollBack();
+    game.rollForward();
+
+    expect(game.line?.text).toBe('Справа');
+    expect(game.history.at(-2)).toEqual({ kind: 'choice', text: 'Направо' });
   });
 });

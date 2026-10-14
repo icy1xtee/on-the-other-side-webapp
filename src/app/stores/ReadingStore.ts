@@ -207,6 +207,25 @@ export class ReadingStore {
     return true;
   }
 
+  /**
+   * «Назад», the wheel up, PageUp: the previous line, shown whole — it was read already — and a
+   * choice with its options out, to pick again. Auto and Skip end.
+   */
+  rollBack() {
+    this.stopModes();
+    if (this.game.rollBack()) {
+      this.showWhole();
+    }
+  }
+
+  /** The wheel down, PageDown: forward along the way already read, each line shown whole. */
+  rollForward() {
+    this.stopModes();
+    if (this.game.rollForward()) {
+      this.showWhole();
+    }
+  }
+
   toggleAuto() {
     this.setMode(this.mode === 'auto' ? null : 'auto');
   }
@@ -242,6 +261,14 @@ export class ReadingStore {
 
   private readPrompt() {
     this.readPromptKey = this.game.line?.key ?? null;
+  }
+
+  /** A line come back to: whole at once, and a choice's options out. */
+  private showWhole() {
+    this.finishLine();
+    if (this.promptPending) {
+      this.readPrompt();
+    }
   }
 
   /** On to the next line; the one left is read from now on. */
