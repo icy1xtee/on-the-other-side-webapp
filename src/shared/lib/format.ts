@@ -8,7 +8,10 @@ export function formatPlayTime(ms: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds % 60)}`;
 }
 
-/** When a save was made, the way the player's language writes dates: `12.10.2026 · 18:57`. */
+/**
+ * When a save was made, the way the player's language writes dates: `12.10.2026 · 18:57`. The
+ * clock is 24-hour in every language, as in the design: a slot's meta line has no room for "PM".
+ */
 export function formatSavedAt(ms: number, language: string): string {
   const at = new Date(ms);
   const date = new Intl.DateTimeFormat(language, {
@@ -16,7 +19,11 @@ export function formatSavedAt(ms: number, language: string): string {
     month: '2-digit',
     year: 'numeric',
   }).format(at);
-  const time = new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit' }).format(at);
+  const time = new Intl.DateTimeFormat(language, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(at);
   return `${date} · ${time}`;
 }
 

@@ -2,7 +2,7 @@ import { createSceneRegistry } from '@engine';
 import { autorun } from 'mobx';
 import { describe, expect, it } from 'vitest';
 import { memorySlot } from './testDoubles';
-import { createGame, fork, path } from './testStory';
+import { createGame, fork, path, savedPosition } from './testStory';
 
 describe('GameStore', () => {
   it('starts the story on the first line, with ids resolved into files and names', () => {
@@ -122,46 +122,53 @@ describe('GameStore at a choice', () => {
   });
 });
 
-describe('GameStore continuing', () => {
+describe('GameStore loading', () => {
   it('resumes after a reload on the same line, with the same stage', () => {
     const before = createGame();
     before.game.newGame();
     before.game.advance();
 
     // A new game over the same storage: the page was reloaded.
-    const { game } = createGame({ slot: memorySlot(before.slot.value) });
-    expect(game.continueGame()).toBe(true);
+    const { game, saves } = createGame({ slot: memorySlot(before.slot.value) });
+    game.resume(saves.resumable!);
 
     expect(game.line?.text).toBe('Последняя');
     expect(game.state).toEqual(before.game.state);
     expect(game.frame).toEqual(before.game.frame);
+    // As after rollback: the frame comes at once.
+    expect(game.travelled).toBe(true);
   });
 
-  it('has nothing to continue without a save', () => {
-    const { game } = createGame();
-    expect(game.continueGame()).toBe(false);
-    expect(game.state).toBeNull();
-  });
-
-  it('previews what Continue leads to: the picture, the line and when it was saved', () => {
-    const before = createGame();
+  it('brings back the history and the way back, which rolls back as before', () => {
+    const before = createGame({ registry: path });
     before.game.newGame();
+    before.game.advance();
+    before.game.advance();
+    before.game.choose(1);
 
-    const { game } = createGame({ slot: memorySlot(before.slot.value) });
-    expect(game.continuePreview).toEqual({
-      frame: {
-        background: '/room.webp',
-        sprites: [{ tag: 'mila', at: 'left', src: '/mila-happy.webp' }],
-      },
-      line: { speaker: 'Мила', text: 'Первая' },
-      savedAt: expect.any(Number),
-    });
-    // The preview plays nothing: the door knocks on Continue only if it did on the way.
-    expect(game.state).toBeNull();
+    const { game, saves } = createGame({ registry: path, slot: memorySlot(before.slot.value) });
+    game.resume(saves.resumable!);
+    expect(game.history).toEqual(before.game.history);
+    expect(game.canRollBack).toBe(true);
+
+    game.rollBack();
+    expect(game.line?.text).toBe('Куда?');
+    expect(game.canRollForward).toBe(true);
+    game.choose(0);
+    expect(game.line?.text).toBe('Слева');
   });
 
-  it('has nothing to preview without a save', () => {
-    expect(createGame().game.continuePreview).toBeNull();
+  it('loads a slot over the game on screen, which the autosave then takes', () => {
+    const { game, saves, slot } = createGame({ registry: path });
+    game.newGame();
+    saves.saveTo(2);
+    game.advance();
+    game.advance();
+
+    game.resume(saves.game(2)!);
+    expect(game.line?.text).toBe('Первая');
+    expect(game.canRollBack).toBe(false);
+    expect(savedPosition(slot.value)).toEqual({ sceneId: 'intro', step: 2 });
   });
 });
 
@@ -177,12 +184,12 @@ describe('GameStore audio', () => {
     expect(audio.playSound).toHaveBeenCalledOnce();
   });
 
-  it('brings the music back on Continue without restarting the same track', () => {
+  it('brings the music back on loading without restarting the same track', () => {
     const before = createGame();
     before.game.newGame();
 
-    const { game, audio } = createGame({ slot: memorySlot(before.slot.value) });
-    game.continueGame();
+    const { game, saves, audio } = createGame({ slot: memorySlot(before.slot.value) });
+    game.resume(saves.resumable!);
 
     expect(audio.playMusic).toHaveBeenCalledExactlyOnceWith('/theme.mp3', { ifChanged: true });
     // Nothing on the way to the saved line is re-executed: the door doesn't knock twice.
@@ -207,17 +214,12 @@ describe('GameStore history', () => {
     ]);
   });
 
-  it('starts over with a new game, and with Continue until saves keep it', () => {
-    const before = createGame({ registry: path });
-    before.game.newGame();
-    before.game.advance();
-    before.game.newGame();
-    expect(before.game.history).toEqual([{ kind: 'narration', text: 'Первая' }]);
-
-    before.game.advance();
-    const { game } = createGame({ registry: path, slot: memorySlot(before.slot.value) });
-    game.continueGame();
-    expect(game.history).toEqual([{ kind: 'line', speaker: 'Мила', text: 'Вторая' }]);
+  it('starts over with a new game', () => {
+    const { game } = createGame({ registry: path });
+    game.newGame();
+    game.advance();
+    game.newGame();
+    expect(game.history).toEqual([{ kind: 'narration', text: 'Первая' }]);
     expect(game.canRollBack).toBe(false);
   });
 });
@@ -254,7 +256,7 @@ describe('GameStore rollback', () => {
     expect(game.travelled).toBe(true);
     expect(game.history).toEqual([{ kind: 'narration', text: 'Первая' }]);
     // The autosave follows: Continue picks up where the player rolled back to.
-    expect(JSON.parse(slot.value!)).toMatchObject({ position: { step: 2 } });
+    expect(savedPosition(slot.value)).toEqual({ sceneId: 'intro', step: 2 });
   });
 
   it('rolls forward along the way taken, and stops at the newest line', () => {

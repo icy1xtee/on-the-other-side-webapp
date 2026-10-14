@@ -15,7 +15,7 @@ import {
   storyEn,
   variableDefaults,
 } from '@/content';
-import { STORAGE_KEYS } from '@/shared/config/storageKeys';
+import { saveKey, STORAGE_KEYS } from '@/shared/config/storageKeys';
 import { initI18n } from '@/shared/i18n/i18n';
 import { createAudioPlayer } from '@/shared/lib/audio';
 import { createStorageSlot } from '@/shared/lib/storage';
@@ -51,9 +51,9 @@ const rootStore = new RootStore({
   registry: devRegistry ?? createSceneRegistry(scenes, startScene),
   variableDefaults,
   presentation: { speakers, sceneTitles, assets },
-  // A `?dev=` run keeps its own save and its own read lines: testing a scene doesn't touch the
+  // A `?dev=` run keeps its own saves and its own read lines: testing a scene doesn't touch the
   // real playthrough.
-  saveSlot: createStorageSlot(devRun ? STORAGE_KEYS.devAutosave : STORAGE_KEYS.autosave),
+  saveStorage: (source) => createStorageSlot(saveKey(source, devRun)),
   settingsSlot: createStorageSlot(STORAGE_KEYS.settings),
   persistentSlot: createStorageSlot(devRun ? STORAGE_KEYS.devPersistent : STORAGE_KEYS.persistent),
   menuArt,

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { u } from '@/shared/lib/units';
 
@@ -13,11 +13,18 @@ type ModalProps = {
   children: ReactNode;
 };
 
+/** The windows open now, the newest last: Esc closes only the newest. */
+const openWindows: object[] = [];
+
 /**
  * A window over the screen on a dimmed, blurred backdrop: the game menu, confirmations. Esc or
  * a click on the backdrop closes it. Esc is caught in the capture phase, before the game's own
  * keys see it, so closing the window can't also reopen it; clicks inside never reach the stage
  * behind.
+ *
+ * A window may open inside another — a question over the game menu: its backdrop then covers
+ * that window only (the nearest positioned box), Esc closes it alone, and on closing it gives the
+ * focus back to where it was in the window under it.
  */
 export function Modal({ labelledBy, onClose, role = 'dialog', className, children }: ModalProps) {
   const panel = useRef<HTMLDivElement>(null);
@@ -25,23 +32,45 @@ export function Modal({ labelledBy, onClose, role = 'dialog', className, childre
   useLayoutEffect(() => {
     latestOnClose.current = onClose;
   });
+  // Where the focus was, and the window it was in. Taken while rendering: once this window is in,
+  // the one under it may be inert and lose the focus.
+  const [opener] = useState(() => {
+    const focused = document.activeElement;
+    const within = focused?.closest<HTMLElement>('[aria-modal]');
+    return focused instanceof HTMLElement && within ? { focused, window: within } : null;
+  });
 
   useEffect(() => {
+    const self = {};
+    openWindows.push(self);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && openWindows.at(-1) === self) {
         event.preventDefault();
         event.stopPropagation();
         latestOnClose.current();
       }
     };
     window.addEventListener('keydown', onKeyDown, true);
-    return () => window.removeEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+      openWindows.splice(openWindows.indexOf(self), 1);
+    };
   }, []);
 
-  // A keyboard player lands inside the window, not on the game behind it.
+  // A keyboard player lands inside the window, not on the game behind it; leaving a window opened
+  // from another, they land back where they were — or in that window, if what they were on has
+  // gone (a deleted slot). Leaving for the game, no: a button of the panel in focus would take
+  // the next Space instead of the story.
   useEffect(() => {
     panel.current?.focus();
-  }, []);
+    return () => {
+      if (opener?.focused.isConnected) {
+        opener.focused.focus();
+      } else if (opener?.window.isConnected) {
+        opener.window.focus();
+      }
+    };
+  }, [opener]);
 
   return (
     <Backdrop

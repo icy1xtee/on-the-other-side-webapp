@@ -5,6 +5,7 @@ import { useTheme } from 'styled-components';
 import { useAdvanceDialogue } from '@/features/advance-dialogue/useAdvanceDialogue';
 import { useReadingModes } from '@/features/advance-dialogue/useReadingModes';
 import { ChoiceList } from '@/features/make-choice/ChoiceList';
+import { SlotQuestionDialog } from '@/features/save-slots/SlotQuestionDialog';
 import { MENU_SECTIONS } from '@/shared/config/gameMenu';
 import { formatPlayTime } from '@/shared/lib/format';
 import { useStores } from '@/shared/lib/stores/useStores';
@@ -44,9 +45,8 @@ export const GamePage = observer(function GamePage() {
 
   const comingSoon = (feature: string) => ui.showNotice(t('notice.comingSoon', { feature }));
 
-  // «Назад» rolls back, Auto and Skip switch their modes, «История» opens the history. The game
-  // saves itself on every line; the Save button does it at once and says so. Load comes with the
-  // save slots.
+  // «Назад» rolls back, Auto and Skip switch their modes; «История», «Сохранить» and «Загрузить»
+  // open the game menu on their sections.
   const onSystemAction = (action: SystemAction) => {
     if (action === 'back') {
       reading.rollBack();
@@ -54,11 +54,8 @@ export const GamePage = observer(function GamePage() {
       reading.toggleAuto();
     } else if (action === 'skip') {
       reading.toggleSkip();
-    } else if (action === 'history') {
-      ui.openGameMenu('history');
-    } else if (action === 'save') {
-      const saved = saves.saveNow();
-      ui.showNotice(saved ? t('notice.saved') : t('notice.saveFailed'), saved ? 'info' : 'error');
+    } else if (action === 'history' || action === 'save' || action === 'load') {
+      ui.openGameMenu(action);
     } else {
       comingSoon(t(`dialogue.action.${action}`));
     }
@@ -113,6 +110,7 @@ export const GamePage = observer(function GamePage() {
               onSection={ui.showMenuSection}
               onClose={ui.closeOverlay}
               onMainMenu={toMainMenu}
+              dialog={overlay.question && <SlotQuestionDialog question={overlay.question} />}
             />
           )}
           <NoticeToast notice={ui.notice} onHide={ui.hideNotice} />

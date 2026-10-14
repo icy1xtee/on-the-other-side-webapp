@@ -1,5 +1,5 @@
-import type { GameState } from '@engine';
 import { describe, expect, it } from 'vitest';
+import type { GameState } from '../state/state';
 import {
   arrive,
   goesTheSameWay,

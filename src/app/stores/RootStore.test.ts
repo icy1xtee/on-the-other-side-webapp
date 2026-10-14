@@ -1,17 +1,26 @@
-import { describe, expect, it } from 'vitest';
+import i18next from 'i18next';
+import { beforeAll, describe, expect, it } from 'vitest';
+import type { LoadSource } from '@/shared/config/saveSlots';
+import { ru } from '@/shared/i18n/locales/ru';
 import { RootStore } from './RootStore';
 import { fakeAudio, memorySlot } from './testDoubles';
 import { presentation, registry } from './testStory';
 
-/** A RootStore over memory storage and silent audio. */
-function createRoot(saveSlot = memorySlot(), settingsSlot = memorySlot(), audio = fakeAudio()) {
+/** A RootStore over memory storage — refusing to save, if asked to — and silent audio. */
+function createRoot({ refusing = false } = {}) {
+  const audio = fakeAudio();
+  const saves = new Map<LoadSource, ReturnType<typeof memorySlot>>();
   return {
     root: new RootStore({
       registry,
       variableDefaults: {},
       presentation,
-      saveSlot,
-      settingsSlot,
+      saveStorage: (source) => {
+        const slot = saves.get(source) ?? memorySlot(null, { refusing });
+        saves.set(source, slot);
+        return slot;
+      },
+      settingsSlot: memorySlot(),
       persistentSlot: memorySlot(),
       menuArt: { background: '/room.webp', character: '/mila-happy.webp' },
       audio,
@@ -77,7 +86,7 @@ describe('RootStore', () => {
     const { root } = createRoot();
     root.newGame();
     root.reading.toggleAuto();
-    root.ui.openGameMenu();
+    root.ui.openGameMenu('save');
     expect(root.reading.mode).toBeNull();
 
     root.ui.closeOverlay();
@@ -104,9 +113,116 @@ describe('RootStore', () => {
   });
 
   it('shows a notice when the game cannot be saved', () => {
-    const { root } = createRoot(memorySlot(null, { refusing: true }));
+    const { root } = createRoot({ refusing: true });
     root.newGame();
 
     expect(root.ui.notice).not.toBeNull();
+  });
+});
+
+describe('RootStore save slots', () => {
+  // The notices say what happened in the player's words.
+  beforeAll(() =>
+    i18next.init({
+      lng: 'ru',
+      ns: ['ui'],
+      defaultNS: 'ui',
+      resources: { ru: { ui: ru } },
+      keySeparator: false,
+      initAsync: false,
+    }),
+  );
+
+  /** In the game on its second line, the game menu open on a section. */
+  function inTheMenu(section: 'save' | 'load', options?: { refusing?: boolean }) {
+    const created = createRoot(options);
+    created.root.newGame();
+    created.root.ui.openGameMenu(section);
+    return created;
+  }
+
+  const question = (root: RootStore) =>
+    root.ui.overlay?.type === 'gameMenu' ? root.ui.overlay.question : undefined;
+
+  it('saves into an empty slot at once, and says so', () => {
+    const { root } = inTheMenu('save');
+    root.requestSave(3);
+
+    expect(root.saves.game(3)).not.toBeNull();
+    expect(question(root)).toBeNull();
+    expect(root.ui.notice).toMatchObject({ text: 'Сохранено в слот 3', tone: 'info' });
+  });
+
+  it('asks before overwriting a slot, and overwrites on yes', () => {
+    const { root } = inTheMenu('save');
+    root.requestSave(1);
+    const first = root.saves.game(1);
+    root.game.advance();
+
+    root.requestSave(1);
+    expect(question(root)).toEqual({ type: 'overwrite', slot: 1 });
+    expect(root.saves.game(1)).toBe(first);
+
+    root.confirmQuestion();
+    expect(question(root)).toBeNull();
+    expect(root.saves.preview(1)?.line?.text).toBe('Последняя');
+  });
+
+  it('says in red when storage refuses the slot', () => {
+    const { root } = inTheMenu('save', { refusing: true });
+    root.requestSave(2);
+    expect(root.ui.notice).toMatchObject({
+      text: 'Не удалось сохранить: хранилище браузера недоступно',
+      tone: 'error',
+    });
+  });
+
+  it('asks before deleting, and keeps the slot on no', () => {
+    const { root } = inTheMenu('save');
+    root.requestSave(4);
+
+    root.requestDelete(4);
+    expect(question(root)).toEqual({ type: 'delete', slot: 4 });
+    root.ui.dismissQuestion();
+    expect(root.saves.game(4)).not.toBeNull();
+
+    root.requestDelete(4);
+    root.confirmQuestion();
+    expect(root.saves.game(4)).toBeNull();
+  });
+
+  it('asks before loading over the game on screen, then plays the save', () => {
+    const { root } = inTheMenu('save');
+    root.requestSave(5);
+    root.game.advance();
+    root.ui.showMenuSection('load');
+
+    root.requestLoad(5);
+    expect(question(root)).toEqual({ type: 'load', source: 5 });
+    root.confirmQuestion();
+    expect(root.ui.overlay).toBeNull();
+    expect(root.game.line?.text).toBe('Первая');
+  });
+
+  it('loads at once from the main menu', () => {
+    const { root } = inTheMenu('save');
+    root.requestSave(6);
+    root.game.advance();
+    root.toMainMenu();
+    root.ui.openGameMenu('load');
+
+    root.requestLoad(6);
+    expect(root.ui.screen).toBe('game');
+    expect(root.ui.overlay).toBeNull();
+    expect(root.game.line?.text).toBe('Первая');
+  });
+
+  it('drops the question with the section it was asked in', () => {
+    const { root } = inTheMenu('save');
+    root.requestSave(1);
+    root.requestDelete(1);
+
+    root.ui.showMenuSection('settings');
+    expect(question(root)).toBeNull();
   });
 });

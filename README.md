@@ -50,18 +50,21 @@ src/
   content/   scenes, ids, speakers, variables, assets, translations — the only place that
              knows the plot; __dev__/ holds test scenes (`?dev=branching` on the dev server)
   assets/    backgrounds, characters, portraits, music
-e2e/         Playwright smoke tests: a playthrough, the choice, Continue after a reload
+e2e/         Playwright smoke tests: a playthrough, the choice, Continue after a reload, rollback,
+             the history, save slots
 ```
 
 ## Playing
 
 Click or Space / Enter — next line (a click while a line types shows it whole). At a choice:
-read the prompt, then click an option or press 1–9. Esc — settings, with the way back to the
-main menu. «Авто» turns the pages by itself; «Пропуск» (or Tab, or Ctrl held) skips what has
-been read, in this playthrough or an earlier one, and stops at a choice. «Назад», the wheel up or
-Page Up — back to the line before, a choice to pick again; the wheel down or Page Down — forward
-along the way read. «История» lists what has been read and chosen. The game saves itself on every
-line; «Продолжить» in the menu picks it up.
+read the prompt, then click an option or press 1–9. Esc — the game menu: saving and loading,
+the history, the settings, the way back to the main menu. «Авто» turns the pages by itself;
+«Пропуск» (or Tab, or Ctrl held) skips what has been read, in this playthrough or an earlier one,
+and stops at a choice. «Назад», the wheel up or Page Up — back to the line before, a choice to
+pick again; the wheel down or Page Down — forward along the way read. «История» lists what has
+been read and chosen. The game saves itself on every line; «Продолжить» in the menu picks it up.
+«Сохранить» puts the game into one of six slots; «Загрузить» — here or in the main menu — brings
+one back, its history and the way back included.
 
 ## Docs
 
