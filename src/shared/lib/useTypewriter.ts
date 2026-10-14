@@ -4,6 +4,8 @@ import { revealedChars } from '@/shared/lib/typewriter';
 type TypewriterOptions = {
   /** Show the whole line now: it was clicked through, or the text is instant. */
   shown: boolean;
+  /** Not yet: nothing of the line shows and the clock doesn't run — a transition plays first. */
+  held?: boolean;
   /** Called once the line has typed out to its end by itself. */
   onTyped: () => void;
 };
@@ -13,20 +15,20 @@ type TypewriterOptions = {
  * rather than a timer: an even pace at any speed, and it pauses by itself in a hidden tab.
  * A new `key` restarts the reveal, even for a line that reads the same as the last one; a new
  * speed goes on from where the line has got to. Whether the line is whole is decided outside
- * (`shown`); the typewriter only reports reaching the end.
+ * (`shown`); the typewriter only reports reaching the end. A held line starts typing when let go.
  */
 export function useTypewriter(
   text: string,
   charsPerSecond: number,
   key: string,
-  { shown, onTyped }: TypewriterOptions,
+  { shown, held = false, onTyped }: TypewriterOptions,
 ) {
   const [revealed, setRevealed] = useState({ key, count: 0 });
   const frame = useRef(0);
 
   const typed =
     revealed.key === key ? revealed.count : revealedChars(0, charsPerSecond, text.length);
-  const count = shown ? text.length : typed;
+  const count = held ? 0 : shown ? text.length : typed;
 
   // How far the line has got, for a speed change mid-line, and the latest callback: set before
   // the effect below runs.
@@ -38,7 +40,7 @@ export function useTypewriter(
   });
 
   useEffect(() => {
-    if (shown) {
+    if (shown || held) {
       return;
     }
     // Back-date the start, so the new speed picks up at the characters already shown.
@@ -55,7 +57,7 @@ export function useTypewriter(
     };
     frame.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame.current);
-  }, [key, text, charsPerSecond, shown]);
+  }, [key, text, charsPerSecond, shown, held]);
 
   return text.slice(0, count);
 }

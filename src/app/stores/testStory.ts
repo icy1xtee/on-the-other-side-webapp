@@ -68,6 +68,32 @@ export const path = createSceneRegistry(
   'intro',
 );
 
+/**
+ * Transitions the story asks for: none on the first line, two before the second — the last one
+ * counts — and one before a choice without a prompt.
+ */
+export const staged = createSceneRegistry(
+  {
+    intro: [
+      { type: 'scene', background: 'room' },
+      { type: 'say', text: 'Тихо' },
+      { type: 'show', tag: 'mila', emotion: 'happy', with: 'vpunch' },
+      { type: 'show', tag: 'mila', emotion: 'happy', at: 'left', with: 'move' },
+      { type: 'say', speaker: 'mila', text: 'Стук' },
+      { type: 'scene', background: 'room', with: 'fade' },
+      {
+        type: 'choice',
+        options: [
+          { text: 'Да', then: [] },
+          { text: 'Нет', then: [] },
+        ],
+      },
+      { type: 'say', text: 'Последняя' },
+    ],
+  },
+  'intro',
+);
+
 export const presentation: Presentation = {
   speakers: { mila: { name: 'Мила' } },
   sceneTitles: { intro: 'Начало' },

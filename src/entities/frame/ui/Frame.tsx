@@ -1,5 +1,5 @@
 import type { SpritePosition } from '@engine';
-import styled, { type DefaultTheme } from 'styled-components';
+import styled, { css, keyframes, type DefaultTheme } from 'styled-components';
 import { DESIGN_HEIGHT, DESIGN_WIDTH } from '@/shared/config/design';
 import { u } from '@/shared/lib/units';
 
@@ -16,16 +16,29 @@ export type Frame = {
   sprites: readonly CharacterSprite[];
 };
 
+type StageFrameProps = {
+  frame: Frame;
+  /**
+   * Where characters stood before, by tag: those that stood elsewhere glide from there to their
+   * place — Ren'Py's `move`. The rest of the frame is simply there.
+   */
+  movedFrom?: Readonly<Partial<Record<string, SpritePosition>>>;
+};
+
 /**
  * The frame on the stage: the scene art across the top of the window, shaded where the dialogue
  * panel lies over it, and the characters standing on its bottom edge from under the header.
  */
-export function StageFrame({ frame }: { frame: Frame }) {
+export function StageFrame({ frame, movedFrom }: StageFrameProps) {
   return (
     <SceneBox>
       {frame.background && <Background src={frame.background} alt="" draggable={false} />}
       <Shade />
-      <Sprites sprites={frame.sprites} $top={(theme) => u(theme.header.height)} />
+      <Sprites
+        sprites={frame.sprites}
+        movedFrom={movedFrom}
+        $top={(theme) => u(theme.header.height)}
+      />
     </SceneBox>
   );
 }
@@ -65,16 +78,29 @@ export function FrameThumbnail({ frame, centered = false, className }: FrameThum
  */
 function Sprites({
   sprites,
+  movedFrom,
   $top,
 }: {
   sprites: readonly CharacterSprite[];
+  movedFrom?: StageFrameProps['movedFrom'];
   $top: (theme: DefaultTheme) => string;
 }) {
   return (
     <>
-      {sprites.map(({ tag, src, at }) =>
-        src ? <Sprite key={tag} src={src} alt="" draggable={false} $at={at} $top={$top} /> : null,
-      )}
+      {sprites.map(({ tag, src, at }) => {
+        const from = movedFrom?.[tag];
+        return src ? (
+          <Sprite
+            key={tag}
+            src={src}
+            alt=""
+            draggable={false}
+            $at={at}
+            $from={from === at ? undefined : from}
+            $top={$top}
+          />
+        ) : null;
+      })}
     </>
   );
 }
@@ -122,10 +148,19 @@ const Shade = styled.div`
   background: ${({ theme }) => theme.surfaces.sceneShade};
 `;
 
+/** From the column in `--moved-from` to the sprite's own. */
+const glide = keyframes`
+  from { left: var(--moved-from); }
+`;
+
 // A column down to the scene's bottom edge; the art keeps its proportions and stands on it. The
 // height is explicit: an absolutely positioned image with `height: auto` takes its own height
-// and ignores `bottom`.
-const Sprite = styled.img<{ $at: SpritePosition; $top: (theme: DefaultTheme) => string }>`
+// and ignores `bottom`. Ren'Py's `move` is even, without easing (`ease` is another transition).
+const Sprite = styled.img<{
+  $at: SpritePosition;
+  $from?: SpritePosition;
+  $top: (theme: DefaultTheme) => string;
+}>`
   position: absolute;
   left: ${({ theme, $at }) => theme.sprite[$at]}%;
   width: ${({ theme }) => theme.sprite.widthPercent}%;
@@ -133,4 +168,10 @@ const Sprite = styled.img<{ $at: SpritePosition; $top: (theme: DefaultTheme) => 
   height: ${({ theme, $top }) => `calc(100% - ${$top(theme)})`};
   object-fit: contain;
   object-position: center bottom;
+  ${({ theme, $from }) =>
+    $from &&
+    css`
+      --moved-from: ${theme.sprite[$from]}%;
+      animation: ${glide} ${theme.timing.moveMs}ms linear;
+    `}
 `;

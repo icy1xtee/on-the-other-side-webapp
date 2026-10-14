@@ -127,7 +127,8 @@ src/app/stores  RootStore (wires the stores; the main menu's art; saving, loadin
               or not, read in an earlier pass or not; the one `requestAdvance`, keys 1–9; Auto
               and Skip as in Ren'Py — what they do next is `nextStep`, the UI's timer calls
               `step()`; rolling back and forward shows the line whole, a choice with its options
-              out),
+              out; a transition the story asks for (`with`) holds the line back until the scene
+              says it is over, a click cuts it short),
               PersistentStore (Ren'Py's `persistent`: the lines read, keyed by scene and a hash of
               the Russian line — `ots:persistent`, outlives every playthrough), SettingsStore
               (volumes, mute, text speed and size, Auto's pause, what Skip passes, panel opacity,
@@ -141,17 +142,21 @@ src/features/advance-dialogue  input into ReadingStore's commands: click on the 
               system controls), Space/Enter → requestAdvance; keys 1–9; Tab → Skip on and off
               (unless the focus is on a control), Ctrl → Skip while held; PageUp / the wheel up →
               roll back, PageDown / the wheel down → forward (shared/lib/wheelSteps: a notch or a
-              swipe is a step); Esc → the game menu on Save; nothing reaches the game while a window is
-              open. Runs the typewriter (shared/lib/useTypewriter, rAF), which tells the store
-              when a line has typed out, and Auto's and Skip's timer (useReadingModes) while the
-              player is in the game
+              swipe is a step); Esc → the game menu on Save; nothing reaches the game while a
+              window is open. Runs the typewriter (shared/lib/useTypewriter, rAF; held while a
+              transition plays), which tells the store when a line has typed out, and Auto's and
+              Skip's timer (useReadingModes) while the player is in the game
 src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
               it in a box of any shape (the save slots; the Continue card, its characters put in
               the middle so the small square shows them)
 src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
               `dissolve` (0.5 s) whenever the frame changes — the engine already gathers every
-              change up to the next line into one state, so it is one transition. None while
-              skipping, rolling back and forward, or after a load
+              change up to the next line into one state, so it is one transition. Or the story's
+              own, `with` — the last one before the line: `fade` through black (0.5 + 0.5 s),
+              `move` (characters glide to their new places, evenly, 0.5 s), `vpunch` (the frame
+              shakes, 0.275 s); it tells the reading store when it is over. Less motion
+              (`prefers-reduced-motion`): `fade` is a short dissolve, `move` and `vpunch` none.
+              None while skipping, rolling back and forward, or after a load
 src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("Сохранить",
               "Загрузить", "История", "Настройки"), "Главное меню" at the foot in the game; on
               `shared/ui/Modal` (Esc and a click outside close it, caught before the game; a
@@ -178,7 +183,7 @@ src/assets    art and music files (WebP / SVG / MP3)
 e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
               (click and digit), Continue after a reload, reading at a speed, Auto and Skip,
               rollback through the choice, the history, save slots (save, load in the game and
-              from the main menu, overwrite, delete)
+              from the main menu, overwrite, delete), a line waiting for a transition
 .github/workflows/ci.yml  CI on PRs into main: the checks above in one job, e2e in another
 ```
 
@@ -189,6 +194,8 @@ between FSD layers is kept by hand.
 Scenes are written with the factories from `src/content/dsl.ts` (`scene`, `show`, `say`,
 `narrate`, `goTo`, `choice`, `option`, …), never as raw command objects. A choice may ask with a
 line that stays on screen while the player chooses: `choice(say('mila', 'Куда пойдём?'), [...])`.
+A frame may come in with a transition: `scene('street', { with: 'fade' })`,
+`show('mila', 'sad', 'left', { with: 'move' })`, `show('mila', 'sad', { with: 'vpunch' })`.
 
 ## Conventions
 

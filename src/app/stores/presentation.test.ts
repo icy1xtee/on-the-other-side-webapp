@@ -1,6 +1,7 @@
 import { advance, startGame } from '@engine';
 import { describe, expect, it } from 'vitest';
 import {
+  frameTransition,
   frameView,
   historyView,
   lineView,
@@ -83,5 +84,23 @@ describe('historyView', () => {
       { kind: 'narration', text: 'Тихо' },
       { kind: 'choice', text: 'Налево' },
     ]);
+  });
+});
+
+describe('frameTransition', () => {
+  it('is the last `with` met on the way to the line, sounds and music aside', () => {
+    expect(
+      frameTransition([
+        { type: 'transition', transition: 'vpunch' },
+        { type: 'sfx', asset: 'door' },
+        { type: 'transition', transition: 'fade' },
+        { type: 'music', asset: 'theme', ifChanged: false },
+      ]),
+    ).toBe('fade');
+  });
+
+  it('is none without one: the frame dissolves', () => {
+    expect(frameTransition([{ type: 'sfx', asset: 'door' }])).toBeNull();
+    expect(frameTransition([])).toBeNull();
   });
 });

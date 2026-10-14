@@ -2,7 +2,7 @@ import { createSceneRegistry } from '@engine';
 import { autorun } from 'mobx';
 import { describe, expect, it } from 'vitest';
 import { memorySlot } from './testDoubles';
-import { createGame, fork, path, savedPosition } from './testStory';
+import { createGame, fork, path, savedPosition, staged } from './testStory';
 
 describe('GameStore', () => {
   it('starts the story on the first line, with ids resolved into files and names', () => {
@@ -312,5 +312,45 @@ describe('GameStore rollback', () => {
 
     expect(game.line?.text).toBe('Справа');
     expect(game.history.at(-2)).toEqual({ kind: 'choice', text: 'Направо' });
+  });
+});
+
+describe('GameStore transitions', () => {
+  it('has none for a frame that just dissolves', () => {
+    const { game } = createGame({ registry: staged });
+    game.newGame();
+    expect(game.transition).toBeNull();
+  });
+
+  it('takes the last `with` before a line, under a key of its own', () => {
+    const { game } = createGame({ registry: staged });
+    game.newGame();
+    game.advance();
+    const knock = game.transition;
+    expect(knock).toEqual({ kind: 'move', key: expect.any(Number) });
+
+    game.advance();
+    expect(game.transition).toEqual({ kind: 'fade', key: expect.any(Number) });
+    expect(game.transition?.key).not.toBe(knock?.key);
+  });
+
+  it('shows none after rolling back or forward, or after a load', () => {
+    const { game, saves } = createGame({ registry: staged });
+    game.newGame();
+    game.advance();
+    game.rollBack();
+    expect(game.transition).toBeNull();
+    game.rollForward();
+    expect(game.transition).toBeNull();
+
+    game.resume(saves.resumable!);
+    expect(game.transition).toBeNull();
+  });
+
+  it('keeps it out of the save', () => {
+    const { game, slot } = createGame({ registry: staged });
+    game.newGame();
+    game.advance();
+    expect(slot.value).not.toMatch(/move|vpunch|fade/);
   });
 });

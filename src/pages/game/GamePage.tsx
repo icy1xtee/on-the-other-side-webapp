@@ -28,7 +28,7 @@ export const GamePage = observer(function GamePage() {
   const { game, saves, reading, ui, settings, toMainMenu } = useStores();
   const theme = useTheme();
   const { t } = useTranslation();
-  const { line, visibleText, choiceOptions: options, onStageClick } = useAdvanceDialogue();
+  const { line, waiting, visibleText, choiceOptions: options, onStageClick } = useAdvanceDialogue();
 
   // Play time runs while the player is here: not in a hidden tab, not in the game menu. So do
   // Auto and Skip.
@@ -76,7 +76,14 @@ export const GamePage = observer(function GamePage() {
     <Stage
       modal={overlay !== null}
       onClick={onStageClick}
-      scene={<SceneView {...game.frame} instant={reading.skipping || game.travelled} />}
+      scene={
+        <SceneView
+          {...game.frame}
+          instant={reading.skipping || game.travelled}
+          transition={reading.transition}
+          onTransitionEnd={reading.transitionEnded}
+        />
+      }
       ui={
         <>
           <GameHeader
@@ -84,7 +91,7 @@ export const GamePage = observer(function GamePage() {
             onProfile={() => ui.showNotice(t('notice.profileLater'))}
           />
           <ModeIndicator mode={reading.skipping ? 'skip' : reading.mode} />
-          {(line || options) && (
+          {(line || options || waiting) && (
             <DialogueBox
               speaker={line?.speaker ?? null}
               text={line?.text ?? ''}

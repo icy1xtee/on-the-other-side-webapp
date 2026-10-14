@@ -37,3 +37,13 @@ describe('playEffects', () => {
     ]);
   });
 });
+
+describe('playEffects and transitions', () => {
+  it('leaves a transition to the scene: nothing plays for it', () => {
+    const audio = fakeAudio();
+    playEffects([{ type: 'transition', transition: 'fade' }], audio, presentation.assets);
+
+    expect(audio.playMusic).not.toHaveBeenCalled();
+    expect(audio.playSound).not.toHaveBeenCalled();
+  });
+});

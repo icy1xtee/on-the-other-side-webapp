@@ -1,7 +1,7 @@
 import { computed, makeAutoObservable } from 'mobx';
 import type { GameStore } from './GameStore';
 import type { PersistentStore } from './PersistentStore';
-import type { OptionView } from './presentation';
+import type { OptionView, TransitionView } from './presentation';
 import type { Settings } from './SettingsStore';
 
 /** Ren'Py's `config.skip_delay`: how long a line stays on screen while skipping, in ms. */
@@ -49,6 +49,11 @@ export function autoForwardMs(
  * The typewriter runs in the UI, on the frame clock (`useTypewriter`): it tells this store when a
  * line has typed out (`lineTyped`), and shows the line whole once this store says so.
  *
+ * A transition the story asks for — `with` — is waited for, as in Ren'Py: the line comes out
+ * once the frame is in, and a click cuts the transition short instead of going on. The scene
+ * plays it in the UI and tells this store when it is over (`transitionEnded`). The frame's own
+ * dissolve isn't waited for.
+ *
  * Auto and Skip, as in Ren'Py. Their timers run in the UI too (`useReadingModes`), which waits
  * `nextStep.delayMs` and calls `step()`. Auto goes on after the pause from the settings and waits
  * at a choice for the pick. Skip passes the lines read before (or all of them, by the settings),
@@ -64,6 +69,8 @@ export class ReadingStore {
   private shownKey: string | null = null;
   /** The key of the choice prompt the player has clicked past. */
   private readPromptKey: string | null = null;
+  /** The key of the story's transition that has played out, or been cut short. */
+  private transitionDoneKey: number | null = null;
   private readonly game: GameStore;
   private readonly settings: ReadingSettings;
   private readonly persistent: PersistentStore;
@@ -92,11 +99,25 @@ export class ReadingStore {
   }
 
   /**
+   * The story's transition the frame is coming in with, while it plays: null once it is over or
+   * cut short, and when there is none. Skip shows none, as Ren'Py's doesn't.
+   */
+  get transition(): TransitionView | null {
+    const transition = this.game.transition;
+    return transition && !this.skipping && this.transitionDoneKey !== transition.key
+      ? transition
+      : null;
+  }
+
+  /**
    * The whole line is out: typed to its end, shown at once by a click, the text is instant, or
-   * Skip is passing it.
+   * Skip is passing it. Never while the frame's transition plays: the line comes after it.
    */
   get lineShown(): boolean {
     const line = this.game.line;
+    if (this.transition) {
+      return false;
+    }
     return (
       line === null ||
       this.settings.textCps <= 0 ||
@@ -107,10 +128,10 @@ export class ReadingStore {
 
   /**
    * The options to pick from, once the prompt has been read — so a prompt is never cut short; at
-   * once for a choice without one. Null when there is nothing to pick yet.
+   * once for a choice without one, once its frame is in. Null when there is nothing to pick yet.
    */
   get choiceOptions(): OptionView[] | null {
-    return this.promptPending ? null : this.game.choiceOptions;
+    return this.transition || this.promptPending ? null : this.game.choiceOptions;
   }
 
   /** What Auto or Skip does next and when; null while it waits — for the typewriter or the player. */
@@ -165,6 +186,13 @@ export class ReadingStore {
     }
   }
 
+  /** The transition under `key` has played out. One already gone is left alone. */
+  transitionEnded(key: number) {
+    if (this.game.transition?.key === key) {
+      this.transitionDoneKey = key;
+    }
+  }
+
   /** Shows the rest of the line at once. */
   finishLine() {
     this.shownKey = this.game.line?.key ?? null;
@@ -173,12 +201,15 @@ export class ReadingStore {
   /**
    * A click on the stage, Space or Enter. With Auto or Skip on, it ends them and does nothing
    * else (Ren'Py's `afm_after_click = False`, and its click while skipping). Otherwise: while the
-   * line is still typing, show it whole; once it is whole, go on. At a choice, going on means the
-   * prompt has been read: the options come out.
+   * frame's transition plays, cut it short — the line comes out; while the line is still typing,
+   * show it whole; once it is whole, go on. At a choice, going on means the prompt has been read:
+   * the options come out.
    */
   requestAdvance() {
     if (this.mode) {
       this.setMode(null);
+    } else if (this.transition) {
+      this.finishTransition();
     } else if (!this.lineShown) {
       this.finishLine();
     } else if (this.promptPending) {
@@ -238,6 +269,7 @@ export class ReadingStore {
   holdSkip(held: boolean) {
     this.pinLine();
     this.skipHeld = held;
+    this.skipTransition();
   }
 
   /** Both off: the player left the game screen, opened the game menu, or the game ended. */
@@ -250,6 +282,18 @@ export class ReadingStore {
   private setMode(mode: ReadingMode | null) {
     this.pinLine();
     this.mode = mode;
+    this.skipTransition();
+  }
+
+  private finishTransition() {
+    this.transitionDoneKey = this.game.transition?.key ?? null;
+  }
+
+  /** Skip passes the transition by; it doesn't come back when Skip stops. */
+  private skipTransition() {
+    if (this.skipping) {
+      this.finishTransition();
+    }
   }
 
   /** A line Skip is passing stays whole when Skip stops on it: no typing it out again. */

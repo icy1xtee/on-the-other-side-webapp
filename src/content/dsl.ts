@@ -2,28 +2,48 @@
 // this story's registries, and checks what a plain union can't: that an emotion belongs to
 // that very character, and that a variable gets a value of its own type.
 
-import type { LocalizedText, SpritePosition } from '@engine';
+import type { LocalizedText, SpritePosition, Transition } from '@engine';
 import type { BackgroundId, CharacterId, EmotionOf, MusicId, SceneId, SfxId } from './ids';
 import type { SpeakerId } from './speakers';
 import type { Cmd, Line, Option } from './types';
 import type { GameVars } from './variables';
 
+/**
+ * Ren'Py's `with` clause: the transition the frame comes in with — `fade`, `move`, `vpunch`. The
+ * line after it waits for it to end. Without one the frame dissolves, and the line doesn't wait.
+ */
+type WithTransition = { with?: Transition };
+
 /** Clear the stage and set a background — Ren'Py's `scene`. */
-export function scene(background: BackgroundId): Cmd {
-  return { type: 'scene', background };
+export function scene(background: BackgroundId, options: WithTransition = {}): Cmd {
+  return withTransition({ type: 'scene', background }, options);
 }
 
-/** Show a character, or change the emotion of one already shown; it keeps its place unless `at` is given. */
+/**
+ * Show a character, or change the emotion of one already shown; it keeps its place unless `at`
+ * is given: `show('mila', 'happy')`, `show('mila', 'happy', 'left', { with: 'move' })`,
+ * `show('mila', 'sad', { with: 'vpunch' })`.
+ */
 export function show<C extends CharacterId>(
   tag: C,
   emotion: EmotionOf<C>,
-  at?: SpritePosition,
+  at?: SpritePosition | WithTransition,
+  options: WithTransition = {},
 ): Cmd {
-  return at ? { type: 'show', tag, emotion, at } : { type: 'show', tag, emotion };
+  if (typeof at === 'object') {
+    return withTransition({ type: 'show', tag, emotion }, at);
+  }
+  const command: Cmd = at ? { type: 'show', tag, emotion, at } : { type: 'show', tag, emotion };
+  return withTransition(command, options);
 }
 
-export function hide(tag: CharacterId): Cmd {
-  return { type: 'hide', tag };
+export function hide(tag: CharacterId, options: WithTransition = {}): Cmd {
+  return withTransition({ type: 'hide', tag }, options);
+}
+
+/** No `with` key at all without a transition: a scene without any keeps its fingerprint. */
+function withTransition<T extends Cmd>(command: T, options: WithTransition): T {
+  return options.with ? { ...command, with: options.with } : command;
 }
 
 /** Play a track; with `ifChanged`, a track already playing is not restarted. */

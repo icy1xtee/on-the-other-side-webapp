@@ -96,6 +96,32 @@ describe('applyInstant', () => {
     expect(effect).toEqual({ type: 'sfx', asset: 'door' });
   });
 
+  it('scene, show and hide report their transition, and keep it out of the state', () => {
+    const scene = applyInstant(initial, { type: 'scene', background: 'room', with: 'fade' });
+    expect(scene.effect).toEqual({ type: 'transition', transition: 'fade' });
+    expect(scene.state.stage).toEqual({ background: 'room', sprites: [] });
+
+    const shown = applyInstant(scene.state, {
+      type: 'show',
+      tag: 'anna',
+      emotion: 'happy',
+      at: 'left',
+      with: 'move',
+    });
+    expect(shown.effect).toEqual({ type: 'transition', transition: 'move' });
+    expect(shown.state.stage.sprites).toEqual([{ tag: 'anna', emotion: 'happy', at: 'left' }]);
+
+    const hidden = applyInstant(shown.state, { type: 'hide', tag: 'anna', with: 'vpunch' });
+    expect(hidden.effect).toEqual({ type: 'transition', transition: 'vpunch' });
+    expect(JSON.stringify(hidden.state)).not.toContain('vpunch');
+  });
+
+  it('scene, show and hide without one report nothing: the app dissolves the frame', () => {
+    expect(applyInstant(initial, { type: 'scene', background: 'room' }).effect).toBeNull();
+    expect(applyInstant(initial, { type: 'show', tag: 'anna', emotion: 'sad' }).effect).toBeNull();
+    expect(applyInstant(initial, { type: 'hide', tag: 'anna' }).effect).toBeNull();
+  });
+
   it('never mutates the given state', () => {
     const state = withSprites(initial, [{ tag: 'anna', emotion: 'happy', at: 'left' }]);
     const snapshot = JSON.parse(JSON.stringify(state));

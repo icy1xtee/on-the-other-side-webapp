@@ -12,9 +12,11 @@ export const intro: Scene = [
   narrate('Коробки после переезда так и стоят неразобранными. Чай в кружке давно остыл.'),
   show('mila', 'happy'),
   say('mila', 'А мне здесь нравится. Даже тишина какая-то своя.'),
+  // The knock shakes the room; Mila steps back from the door.
   sfx('knock'),
+  show('mila', 'sad', { with: 'vpunch' }),
   narrate('В дверь стучат. Три коротких удара — тихо, будто извиняясь.'),
-  show('mila', 'sad'),
+  show('mila', 'sad', 'left', { with: 'move' }),
   say('mila', 'Кто это может быть? Третий час ночи.'),
   say('stranger', 'Можно войти?'),
   say('stranger', 'Я с другой стороны. Меня просили передать, что вас там ждут.'),

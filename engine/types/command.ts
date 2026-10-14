@@ -5,11 +5,27 @@ import type { LocalizedText } from './text';
 export const SPRITE_POSITIONS = ['left', 'center', 'right'] as const;
 export type SpritePosition = (typeof SPRITE_POSITIONS)[number];
 
+/**
+ * Ren'Py's transitions the story may ask for with `with`: `fade` through black, `move` for
+ * characters that changed places, `vpunch` — the screen shakes. More (`moveinleft`, `hpunch`,
+ * `flash`…) when the story needs them. Without one the frame changes by the app's own
+ * `dissolve`.
+ */
+export const TRANSITIONS = ['fade', 'move', 'vpunch'] as const;
+export type Transition = (typeof TRANSITIONS)[number];
+
 export type Command<I extends Ids = Ids> =
-  // Instant: change the state, execution runs on.
-  | { type: 'scene'; background: I['background'] }
-  | { type: 'show'; tag: I['character']; emotion: I['emotion']; at?: SpritePosition }
-  | { type: 'hide'; tag: I['character'] }
+  // Instant: change the state, execution runs on. `with` — the transition the frame comes in
+  // with, as Ren'Py's `with` clause.
+  | { type: 'scene'; background: I['background']; with?: Transition }
+  | {
+      type: 'show';
+      tag: I['character'];
+      emotion: I['emotion'];
+      at?: SpritePosition;
+      with?: Transition;
+    }
+  | { type: 'hide'; tag: I['character']; with?: Transition }
   | { type: 'music'; asset: I['music'] | null; ifChanged?: boolean }
   | { type: 'sfx'; asset: I['sfx'] }
   | { type: 'set'; name: VarName<I>; value: VarValue }
