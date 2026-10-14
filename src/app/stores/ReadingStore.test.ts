@@ -5,7 +5,7 @@ import type { SkipMode } from '@/shared/config/settings';
 import { PersistentStore } from './PersistentStore';
 import { autoForwardMs, ReadingStore, SKIP_DELAY_MS } from './ReadingStore';
 import { memorySlot } from './testDoubles';
-import { createGame, fork, path } from './testStory';
+import { createGame, fork, path, staged } from './testStory';
 
 type Options = { textCps?: number; autoDelay?: number; skipMode?: SkipMode };
 
@@ -347,5 +347,81 @@ describe('ReadingStore: rollback', () => {
     reading.rollForward();
     expect(game.line?.text).toBe('Слева');
     expect(reading.lineShown).toBe(true);
+  });
+});
+
+describe("ReadingStore: the story's transitions", () => {
+  /** On the second line of `staged`: its frame came in with `move`, which still plays. */
+  function atTheKnock(options: Options = {}) {
+    const started = startReading(staged, { textCps: 0, ...options });
+    started.reading.requestAdvance();
+    return started;
+  }
+
+  it('has none to wait for when the frame just dissolves', () => {
+    const { reading } = startReading(staged, { textCps: 0 });
+    expect(reading.transition).toBeNull();
+    expect(reading.lineShown).toBe(true);
+  });
+
+  it('holds the line back while the transition plays, and lets it out when it ends', () => {
+    const { game, reading } = atTheKnock();
+    expect(game.line?.text).toBe('Стук');
+    expect(reading.transition?.kind).toBe('move');
+    expect(reading.lineShown).toBe(false);
+
+    reading.transitionEnded(reading.transition!.key);
+    expect(reading.transition).toBeNull();
+    expect(reading.lineShown).toBe(true);
+  });
+
+  it('cuts the transition short on a click, which does nothing else', () => {
+    const { game, reading } = atTheKnock();
+    reading.requestAdvance();
+
+    expect(reading.transition).toBeNull();
+    expect(game.line?.text).toBe('Стук');
+    reading.requestAdvance();
+    expect(reading.transition?.kind).toBe('fade');
+  });
+
+  it('keeps the options of a choice in until its frame is in', () => {
+    const { reading } = atTheKnock();
+    reading.requestAdvance();
+    reading.requestAdvance();
+    expect(reading.choiceOptions).toBeNull();
+    expect(reading.pickOption(1)).toBe(false);
+
+    reading.transitionEnded(reading.transition!.key);
+    expect(reading.choiceOptions).toHaveLength(2);
+  });
+
+  it('lets Auto wait for the transition before counting its pause', () => {
+    const { reading } = atTheKnock();
+    reading.toggleAuto();
+    expect(reading.nextStep).toBeNull();
+
+    reading.transitionEnded(reading.transition!.key);
+    expect(reading.nextStep?.action).toBe('advance');
+  });
+
+  it('shows none while skipping, and the one skipped past does not come back', () => {
+    const { reading } = atTheKnock({ skipMode: 'all' });
+    reading.toggleSkip();
+    expect(reading.transition).toBeNull();
+
+    reading.toggleSkip();
+    expect(reading.transition).toBeNull();
+    expect(reading.lineShown).toBe(true);
+  });
+
+  it('ignores a transition reported over after the story has moved on', () => {
+    const { reading } = atTheKnock();
+    const knock = reading.transition!.key;
+    reading.requestAdvance();
+    reading.requestAdvance();
+
+    reading.transitionEnded(knock);
+    expect(reading.transition?.kind).toBe('fade');
   });
 });

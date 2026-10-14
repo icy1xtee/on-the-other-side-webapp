@@ -27,8 +27,11 @@ export function useAdvanceDialogue() {
     text: t(source.text),
     speaker: source.speaker && { ...source.speaker, name: t(source.speaker.name) },
   };
+  // The story's transition plays first: the line waits for the frame, then types out.
+  const waiting = reading.transition !== null;
   const visibleText = useTypewriter(line?.text ?? '', settings.textCps, line?.key ?? '', {
     shown: reading.lineShown,
+    held: waiting,
     onTyped: () => source && reading.lineTyped(source.key),
   });
 
@@ -133,7 +136,10 @@ export function useAdvanceDialogue() {
   };
 
   return {
-    line,
+    /** The line on screen; null while the frame's transition plays, the panel empty. */
+    line: waiting ? null : line,
+    /** The story's transition plays: the panel stays, the line comes after. */
+    waiting,
     visibleText,
     /** The options to pick from, once the prompt has been read; null otherwise. */
     choiceOptions: reading.choiceOptions,

@@ -3,7 +3,7 @@ import type { Scene } from '../types';
 
 // Back in the room: the demo ends by running out, and the game returns to the main menu.
 export const home: Scene = [
-  scene('room'),
+  scene('room', { with: 'fade' }),
   narrate('Дома всё так же светятся мониторы. Дождь вернулся и больше не торопится.'),
   show('mila', 'neutral', 'left'),
   say('mila', 'Знаешь, я рада, что мы вышли. Даже если ничего не нашли.'),

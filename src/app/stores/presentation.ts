@@ -1,10 +1,12 @@
 import {
   run,
+  type Effect,
   type GameState,
   type HistoryEntry,
   type Interaction,
   type SceneRegistry,
   type SpritePosition,
+  type Transition,
 } from '@engine';
 
 // What the player sees, worked out from the engine's state: ids become files and names. Pure
@@ -67,6 +69,22 @@ export type SavePreview = {
   /** Milliseconds since the epoch. */
   savedAt: number;
 };
+
+/**
+ * An explicit transition — the story's `with` — the frame of a line comes in with. The key
+ * changes with every one, so the same transition twice in a row plays twice.
+ */
+export type TransitionView = { kind: Transition; key: number };
+
+/**
+ * The transition the frame changes with on the way to a line: the last `with` met. The engine
+ * gathers every change up to the line into one frame, so it has one transition; Ren'Py would play
+ * several `with`s one after another. Null without any: the frame dissolves.
+ */
+export function frameTransition(effects: readonly Effect[]): Transition | null {
+  const last = effects.findLast((effect) => effect.type === 'transition');
+  return last?.type === 'transition' ? last.transition : null;
+}
 
 /** The frame of a state; no state draws an empty stage. */
 export function frameView(state: GameState | null, presentation: Presentation): FrameView {

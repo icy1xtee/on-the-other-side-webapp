@@ -47,6 +47,26 @@ describe('startGame and run', () => {
     ]);
   });
 
+  it('reports every transition met on the way, in order, among the other effects', () => {
+    const registry = createSceneRegistry(
+      {
+        intro: [
+          { type: 'scene', background: 'room', with: 'fade' },
+          { type: 'sfx', asset: 'door' },
+          { type: 'show', tag: 'anna', emotion: 'happy', with: 'vpunch' },
+          say('Кто там?'),
+        ],
+      },
+      'intro',
+    );
+
+    expect(startGame(registry, defaults).effects).toEqual([
+      { type: 'transition', transition: 'fade' },
+      { type: 'sfx', asset: 'door' },
+      { type: 'transition', transition: 'vpunch' },
+    ]);
+  });
+
   it('ends the game when the start scene is empty', () => {
     const registry = createSceneRegistry({ intro: [] }, 'intro');
     expect(startGame(registry, defaults).interaction).toEqual({ type: 'end' });

@@ -19,7 +19,7 @@
 | 2 | Auto и Skip | готов | [02-auto-skip.md](./02-auto-skip.md) · [реестр](./task-registry/02-auto-skip/) |
 | 3 | History и rollback | готов | [03-history-rollback.md](./03-history-rollback.md) · [реестр](./task-registry/03-history-rollback/) |
 | 4 | Слоты | готов | [04-save-slots.md](./04-save-slots.md) · [реестр](./task-registry/04-save-slots/) |
-| 5 | Анимации | не начат | [05-animations.md](./05-animations.md) · [реестр](./task-registry/05-animations/) |
+| 5 | Анимации | готов | [05-animations.md](./05-animations.md) · [реестр](./task-registry/05-animations/) |
 | 6 | Звук и техдолг | не начат | [06-sound-tech-debt.md](./06-sound-tech-debt.md) · [реестр](./task-registry/06-sound-tech-debt/) |
 | 7 | Полировка и сдача 0.2 | не начат | [07-polish.md](./07-polish.md) · [реестр](./task-registry/07-polish/) |
 
@@ -28,6 +28,21 @@
 ## Журнал
 
 Записи добавляются в начало.
+
+### Этап 5 — Анимации · 2026-10-14 · готов
+
+Ветка `feat/0.2-stage-5-animations`, одним заходом; подробности — в
+[реестре](./task-registry/05-animations/).
+
+**Сделано:**
+- **`with`** у `scene`, `show`, `hide` — `fade`, `move`, `vpunch` с параметрами Ren'Py; переход —
+  эффект, в сейв не попадает.
+- **Ожидание** — реплика ждёт явный переход, нажатие доматывает; растворение по умолчанию не
+  ждём; при Skip, откате и загрузке переходов нет; при «меньше движения» — смягчены.
+- **Демо** — стук трясёт кадр, Мила отходит от двери, улица и дом — через чёрный.
+
+**Проверено:** `lint`, `typecheck`, `test` (240), `format:check`, `build`, `e2e` (16). Спорные
+моменты (7) Павел принял все: пересмотрим на реальном контенте, если понадобится.
 
 ### Этап 4 — Слоты · 2026-10-14 · готов
 

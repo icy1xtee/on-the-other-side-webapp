@@ -1,6 +1,6 @@
 import { advance, choose, createSceneRegistry, startGame } from '@engine';
 import { describe, expect, it } from 'vitest';
-import { choice, goTo, narrate, option, say, scene, set, show } from './dsl';
+import { choice, goTo, hide, narrate, option, say, scene, set, show } from './dsl';
 import { scenes, startScene, variableDefaults } from './index';
 
 describe('demo content', () => {
@@ -11,10 +11,16 @@ describe('demo content', () => {
     let result = startGame(registry, variableDefaults);
     const lines: string[] = [];
     const visited: string[] = [];
+    const transitions: string[] = [];
     for (let guard = 0; guard < 200 && result.interaction.type !== 'end'; guard += 1) {
-      const { interaction, state } = result;
+      const { interaction, state, effects } = result;
       if (visited.at(-1) !== state.position.sceneId) {
         visited.push(state.position.sceneId);
+      }
+      for (const effect of effects) {
+        if (effect.type === 'transition') {
+          transitions.push(effect.transition);
+        }
       }
       if (interaction.type === 'say') {
         lines.push(interaction.text);
@@ -24,7 +30,7 @@ describe('demo content', () => {
         result = choose(state, registry, answer);
       }
     }
-    return { result, lines, visited };
+    return { result, lines, visited, transitions };
   }
 
   it('boots: every scene compiles and every goTo leads somewhere', () => {
@@ -50,6 +56,10 @@ describe('demo content', () => {
       });
     },
   );
+
+  it('shows every transition on the way: the knock shakes, Mila moves, the scenes fade', () => {
+    expect(playThrough(0).transitions).toEqual(['vpunch', 'move', 'fade', 'fade']);
+  });
 });
 
 describe('factories', () => {
@@ -95,6 +105,32 @@ describe('factories', () => {
       prompt: { text: 'Что делать?' },
       options: [],
     });
+  });
+
+  it('gives scene, show and hide a transition with `with`, and no key at all without one', () => {
+    expect(scene('street', { with: 'fade' })).toEqual({
+      type: 'scene',
+      background: 'street',
+      with: 'fade',
+    });
+    expect(show('mila', 'happy', 'left', { with: 'move' })).toEqual({
+      type: 'show',
+      tag: 'mila',
+      emotion: 'happy',
+      at: 'left',
+      with: 'move',
+    });
+    expect(show('mila', 'sad', { with: 'vpunch' })).toEqual({
+      type: 'show',
+      tag: 'mila',
+      emotion: 'sad',
+      with: 'vpunch',
+    });
+    expect(hide('mila', { with: 'fade' })).toEqual({ type: 'hide', tag: 'mila', with: 'fade' });
+    expect(scene('room')).toEqual({ type: 'scene', background: 'room' });
+    expect(show('mila', 'happy')).toEqual({ type: 'show', tag: 'mila', emotion: 'happy' });
+    // @ts-expect-error: no such transition.
+    expect(scene('room', { with: 'zoom' })).toBeDefined();
   });
 
   it('builds a choice that mixes leaving and reacting', () => {

@@ -25,6 +25,11 @@ export const demo = {
       'Я подожду внизу. Как всегда.',
     ],
   },
+  /** The street comes in with `fade` after the first option's last line. */
+  street: {
+    before: 'Он не мог уйти так быстро. Пойдём посмотрим.',
+    first: 'Улица пуста. Фонари горят ровно, не мигая, а дождь почти перестал.',
+  },
 } as const;
 
 /**

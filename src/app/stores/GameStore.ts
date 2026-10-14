@@ -20,6 +20,7 @@ import { makeAutoObservable, observable } from 'mobx';
 import type { AudioOutput } from '@/shared/lib/audio';
 import { playEffects } from './audioEffects';
 import {
+  frameTransition,
   frameView,
   historyView,
   lineView,
@@ -30,6 +31,7 @@ import {
   type LineView,
   type OptionView,
   type Presentation,
+  type TransitionView,
 } from './presentation';
 import type { SavedGame, SaveStore } from './SaveStore';
 
@@ -65,6 +67,12 @@ export class GameStore {
    * the frame changes at once — Ren'Py shows no transition on rollback, nor after a load.
    */
   travelled = false;
+  /**
+   * The story's own transition — `with` — the frame came in with on the way to the line on
+   * screen; null when it just dissolves, and after rolling back or forward or a load, which show
+   * none. Not part of the state: a save doesn't keep it.
+   */
+  transition: TransitionView | null = null;
   /** Counts what the player has been shown, so a key changes even on coming back to a step. */
   private turn = 0;
   private readonly options: GameStoreOptions;
@@ -77,6 +85,7 @@ export class GameStore {
         state: observable.ref,
         interaction: observable.ref,
         timeline: observable.ref,
+        transition: observable.ref,
         options: false,
       },
       { autoBind: true },
@@ -183,6 +192,7 @@ export class GameStore {
     const result = run(checkpoint.state, this.options.registry);
     this.timeline = timeline;
     this.travelled = true;
+    this.transition = null;
     this.turn += 1;
     this.state = result.state;
     this.interaction = result.interaction;
@@ -202,6 +212,8 @@ export class GameStore {
     const { saves, audio, presentation, onEnd } = this.options;
     this.turn += 1;
     this.travelled = false;
+    const transition = frameTransition(result.effects);
+    this.transition = transition && { kind: transition, key: this.turn };
     this.state = result.state;
     this.interaction = result.interaction;
     playEffects(result.effects, audio, presentation.assets);

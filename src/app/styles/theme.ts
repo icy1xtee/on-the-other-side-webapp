@@ -438,6 +438,17 @@ export const theme = {
   timing: {
     /** Scene transitions and music fades — Ren'Py's default `dissolve`. */
     transitionMs: 500,
+    /** Ren'Py's `fade`: out to black, then in to the new frame (`Fade(0.5, 0, 0.5)`). */
+    fadeOutMs: 500,
+    fadeInMs: 500,
+    /** `fade` for a player who asked for less motion: a short dissolve instead. */
+    reducedFadeMs: 200,
+    /** Ren'Py's `move`: characters that changed places glide there, evenly (`MoveTransition(0.5)`). */
+    moveMs: 500,
+    /** Ren'Py's `vpunch`: up and down by `punchPx`, a swing per `punchSwingMs`, for `punchMs`. */
+    punchMs: 275,
+    punchSwingMs: 100,
+    punchPx: 10,
     /** The options coming in under the prompt, one after another. */
     choiceRevealMs: 320,
     choiceStaggerMs: 70,

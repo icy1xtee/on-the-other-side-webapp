@@ -42,7 +42,8 @@ if (restored && restored.ok) {
 
 - `state` — the snapshot a checkpoint keeps: `{ position, vars, stage, audio }`;
 - `interaction` — what the player sees: a `say`, a `choice`, or `end`;
-- `effects` — sounds and music changes met on the way, for the audio layer.
+- `effects` — sounds, music changes and transitions met on the way, for the audio layer and the
+  scene.
 
 ## Model
 
@@ -52,6 +53,9 @@ if (restored && restored.ok) {
 - **Ren'Py conventions:** `scene` clears the sprites; `show` with a tag already on screen
   replaces that sprite in place and keeps its position unless `at` is given; positions are
   `left / center / right`.
+- **Transitions.** `scene`, `show` and `hide` take `with` — Ren'Py's `fade`, `move` or `vpunch`
+  (`TRANSITIONS`). It is an effect, not state: how the frame came in is the app's business and
+  a save doesn't keep it. Every one met on the way to a line is reported, in order.
 - **Choices** hold blocks. A block plays and execution continues after the choice, like a
   Ren'Py `menu`; a block ending with `jump` leaves for another scene. A choice may carry a
   `prompt` — the line on screen while the player chooses (the say statement inside a `menu`).

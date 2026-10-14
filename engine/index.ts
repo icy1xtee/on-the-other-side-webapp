@@ -4,11 +4,13 @@ export type { Ids, VarName, VarValue } from './types/ids';
 export type { LocalizedText } from './types/text';
 export {
   SPRITE_POSITIONS,
+  TRANSITIONS,
   type ChoiceOption,
   type ChoicePrompt,
   type Command,
   type SpritePosition,
   type StateCommand,
+  type Transition,
 } from './types/command';
 
 export type { AudioState, GameState, Position, Sprite, StageState } from './state/state';

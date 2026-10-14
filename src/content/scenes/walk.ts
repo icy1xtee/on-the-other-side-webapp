@@ -3,7 +3,7 @@ import type { Scene } from '../types';
 
 // Where the branches of the knock meet: the night street and the voice from behind another door.
 export const walk: Scene = [
-  scene('street'),
+  scene('street', { with: 'fade' }),
   music('theme', { ifChanged: true }),
   sfx('steps'),
   narrate('Улица пуста. Фонари горят ровно, не мигая, а дождь почти перестал.'),
