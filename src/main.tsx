@@ -1,13 +1,14 @@
 import { createSceneRegistry, type SceneRegistry } from '@engine';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@/app/styles/fonts';
+import '@/app/styles/fonts.css';
 import App from '@/app/App';
 import { RootStore } from '@/app/stores/RootStore';
 import { theme } from '@/app/styles/theme';
 import {
   assets,
   menuArt,
+  menuMusic,
   sceneTitles,
   scenes,
   speakers,
@@ -57,7 +58,11 @@ const rootStore = new RootStore({
   settingsSlot: createStorageSlot(STORAGE_KEYS.settings),
   persistentSlot: createStorageSlot(devRun ? STORAGE_KEYS.devPersistent : STORAGE_KEYS.persistent),
   menuArt,
-  audio: createAudioPlayer({ fadeMs: theme.timing.transitionMs }),
+  menuMusic,
+  audio: createAudioPlayer({
+    fadeMs: theme.timing.transitionMs,
+    sounds: Object.values(assets.sounds),
+  }),
 });
 
 // In the player's language from the first frame.

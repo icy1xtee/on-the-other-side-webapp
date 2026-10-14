@@ -49,9 +49,10 @@ src/
   app/ pages/ widgets/ features/ entities/ shared/   UI, Feature-Sliced Design in spirit
   content/   scenes, ids, speakers, variables, assets, translations — the only place that
              knows the plot; __dev__/ holds test scenes (`?dev=branching` on the dev server)
-  assets/    backgrounds, characters, portraits, music
+  assets/    backgrounds, characters, portraits, music, sounds (sounds/CREDITS.md — where they
+             come from)
 e2e/         Playwright smoke tests: a playthrough, the choice, Continue after a reload, rollback,
-             the history, save slots
+             the history, save slots, a line waiting for a transition
 ```
 
 ## Playing
@@ -64,7 +65,8 @@ and stops at a choice. «Назад», the wheel up or Page Up — back to the l
 pick again; the wheel down or Page Down — forward along the way read. «История» lists what has
 been read and chosen. The game saves itself on every line; «Продолжить» in the menu picks it up.
 «Сохранить» puts the game into one of six slots; «Загрузить» — here or in the main menu — brings
-one back, its history and the way back included.
+one back, its history and the way back included. The music starts on the first click or key: the
+browser keeps a page silent until then.
 
 ## Docs
 

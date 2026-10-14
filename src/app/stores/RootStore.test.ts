@@ -23,6 +23,7 @@ function createRoot({ refusing = false } = {}) {
       settingsSlot: memorySlot(),
       persistentSlot: memorySlot(),
       menuArt: { background: '/room.webp', character: '/mila-happy.webp' },
+      menuMusic: '/theme.mp3',
       audio,
     }),
     audio,
@@ -31,7 +32,7 @@ function createRoot({ refusing = false } = {}) {
 
 describe('RootStore', () => {
   it('opens the game on a new game and goes back to the menu when the story ends', () => {
-    const { root, audio } = createRoot();
+    const { root } = createRoot();
 
     root.newGame();
     expect(root.ui.screen).toBe('game');
@@ -39,8 +40,18 @@ describe('RootStore', () => {
     root.game.advance();
     root.game.advance();
     expect(root.ui.screen).toBe('menu');
-    // The menu has no music of its own: the game's track fades out.
-    expect(audio.playMusic).toHaveBeenLastCalledWith(null);
+  });
+
+  it("plays the menu's track from the start, and again on the way back, where the sounds stop", () => {
+    const { root, audio } = createRoot();
+    expect(audio.playMusic).toHaveBeenCalledExactlyOnceWith('/theme.mp3', { ifChanged: true });
+
+    root.newGame();
+    audio.playMusic.mockClear();
+    root.toMainMenu();
+    // Kept on if the game plays the same track: the round has no break in the music.
+    expect(audio.playMusic).toHaveBeenCalledExactlyOnceWith('/theme.mp3', { ifChanged: true });
+    expect(audio.stopSounds).toHaveBeenCalledOnce();
   });
 
   it('continues into the game, or stays in the menu with nothing to continue', () => {

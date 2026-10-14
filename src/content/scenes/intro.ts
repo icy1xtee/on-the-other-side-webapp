@@ -4,7 +4,8 @@ import type { Scene } from '../types';
 // Demo story, placeholder text until the real plot (0.3). The night in the room, a knock at the
 // door and the demo's one choice: every answer leaves for the street, where the branches meet.
 export const intro: Scene = [
-  music('theme'),
+  // The main menu plays the same track: a new game goes on with it rather than starting it over.
+  music('theme', { ifChanged: true }),
   scene('room'),
   narrate('Дождь не прекращается с вечера. Комнату освещают только мониторы.'),
   show('mila', 'neutral'),
