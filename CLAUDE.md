@@ -106,19 +106,23 @@ i18next, Russian by default, English additional. Never hard-code a visible strin
 
 ```
 engine/       the engine, standalone: pure TS over plain data — no React, MobX, DOM or src/
-              imports. Read engine/README.md before touching it.
+              imports; the way taken (`timeline/`: rollback checkpoints, 128 back, and the
+              history, 250 entries kept as keys) and saves of it (`save/`, format 2). Read
+              engine/README.md before touching it.
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/app/stores  RootStore (wires the stores; the main menu's art), UiStore (screen, the
-              `overlay` over it — the game menu on one of its sections, or a confirmation — and
-              notices), GameStore (the game loop: MobX wrapper around the engine — new game,
-              continue, advance, choose; its views go through `presentation.ts`, pure functions
-              that turn ids into image URLs, names and scene titles, so UI never sees content
-              ids; the engine's audio effects are played by `audioEffects.ts`; the way taken —
-              `timeline.ts`, pure functions: a checkpoint per line and choice for rollback, 128
-              back, and the history, 250 entries kept as keys, outside the snapshots),
+src/app/stores  RootStore (wires the stores; the main menu's art; saving, loading, deleting —
+              asking first where it must), UiStore (screen, the `overlay` over it — the game menu
+              on one of its sections, maybe with a question about a save over it, or a
+              confirmation — and notices), GameStore (the game loop: MobX wrapper around the
+              engine — new game, resume a save, advance, choose, roll back and forward; keeps the
+              engine's timeline; its views go through `presentation.ts`, pure functions that
+              turn ids into image URLs, names and scene titles, so UI never sees content ids; the
+              engine's audio effects are played by `audioEffects.ts`),
               SaveStore (the autosave written on every line and choice, "Продолжить" resumes
-              from it; the play time — a clock the game screen runs while the player is there),
+              from it; six slots, read as the Save or Load section opens; a save holds the way
+              taken, so a loaded game rolls back; previews for the menus; the play time — a clock
+              the game screen runs while the player is there),
               ReadingStore (how far the line on screen is read: typed out or not, the prompt read
               or not, read in an earlier pass or not; the one `requestAdvance`, keys 1–9; Auto
               and Skip as in Ren'Py — what they do next is `nextStep`, the UI's timer calls
@@ -130,34 +134,42 @@ src/app/stores  RootStore (wires the stores; the main menu's art), UiStore (scre
               language — `ots:settings`, apart from the save)
 src/shared/lib/stores  AppStores + useStores(): lower layers reach stores without importing app/
 src/shared/lib/storage.ts  localStorage that never throws (blocked, private, full → no saves,
-              the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:`
+              the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:` — saves
+              under `ots:save:auto`, `ots:save:1` … `ots:save:6` (`?dev=` runs: `ots:save:dev…`)
 src/shared/lib/audio.ts  the only file that knows howler
 src/features/advance-dialogue  input into ReadingStore's commands: click on the frame (not on
               system controls), Space/Enter → requestAdvance; keys 1–9; Tab → Skip on and off
               (unless the focus is on a control), Ctrl → Skip while held; PageUp / the wheel up →
               roll back, PageDown / the wheel down → forward (shared/lib/wheelSteps: a notch or a
-              swipe is a step); Esc → the game menu; nothing reaches the game while a window is
+              swipe is a step); Esc → the game menu on Save; nothing reaches the game while a window is
               open. Runs the typewriter (shared/lib/useTypewriter, rAF), which tells the store
               when a line has typed out, and Auto's and Skip's timer (useReadingModes) while the
               player is in the game
 src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
-              it in a box of any shape (the Continue card; save slots later)
+              it in a box of any shape (the save slots; the Continue card, its characters put in
+              the middle so the small square shows them)
 src/widgets/scene-view  the scene: background and characters as one frame, with Ren'Py's
               `dissolve` (0.5 s) whenever the frame changes — the engine already gathers every
               change up to the next line into one state, so it is one transition. None while
-              skipping or rolling back and forward
-src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("История",
-              "Настройки" now; save and load with the slots), "Главное меню" at the foot in the
-              game; on `shared/ui/Modal` (Esc and a click outside close it, caught before the
-              game). From the main menu it opens with fewer sections
+              skipping, rolling back and forward, or after a load
+src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("Сохранить",
+              "Загрузить", "История", "Настройки"), "Главное меню" at the foot in the game; on
+              `shared/ui/Modal` (Esc and a click outside close it, caught before the game; a
+              window opened inside another — a question about a save — dims that one only, and Esc
+              closes it alone). From the main menu it opens on "Загрузить" and "Настройки"
+src/features/save-slots  SlotsSection: Ren'Py's file slots — Save and Load, six slots with a
+              thumbnail of the saved frame, the date, the scene and the line; Load has the
+              autosave over them; a bin on hover and focus, Delete on a slot. SlotQuestionDialog:
+              overwrite, delete, load in the game — asked over the menu
 src/features/change-settings  SettingsSection: the settings' tabs and rows, the game menu's part
 src/features/view-history  HistorySection: the lines read and the choices made, the game menu's
               part, translated as it is shown
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
               dialogue panel (widgets/dialogue-box renders it in place of the caret)
 src/widgets   also: dialogue-box (namebox, line, icon buttons — Auto and Skip pressed while on,
-              «Назад» greyed with nowhere to go back to; meta line), mode-indicator (AUTO ▸ / SKIP ▸▸), game-header, continue-card,
-              confirm-dialog, notice (the toast), stage
+              «Назад» greyed with nowhere to go back to; meta line), mode-indicator (AUTO ▸ /
+              SKIP ▸▸), game-header, continue-card, notice (the toast), stage. The confirmation
+              window is `shared/ui/ConfirmDialog`, on `shared/ui/Modal`
 src/content   the story: ids, speakers, variables, assets (files behind ids; the menu's art),
               scene titles, factories (dsl.ts), scenes
 src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
@@ -165,7 +177,8 @@ src/content/__dev__  test scenes, not part of the game (branching): `?dev=branch
 src/assets    art and music files (WebP / SVG / MP3)
 e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
               (click and digit), Continue after a reload, reading at a speed, Auto and Skip,
-              rollback through the choice, the history
+              rollback through the choice, the history, save slots (save, load in the game and
+              from the main menu, overwrite, delete)
 .github/workflows/ci.yml  CI on PRs into main: the checks above in one job, e2e in another
 ```
 

@@ -19,19 +19,28 @@ The model follows Ren'Py; see `.claude/engine-research.md` for what was taken an
 ```ts
 const registry = createSceneRegistry(scenes, 'intro'); // compiles scenes, checks jump targets
 let result = startGame(registry, variableDefaults); // runs up to the first line or choice
-result = advance(result.state, registry); // the player clicked: next line
-result = choose(result.state, registry, 1); // the player picked option 1 of a choice
+// The way taken, kept by the app: a checkpoint per line or choice, and the history.
+let timeline = startTimeline({ state: result.state, entries: shownEntries(result.interaction) });
 
-const save = createSave(result.state, registry, { savedAt: Date.now(), playTime }); // autosave
+result = advance(result.state, registry); // the player clicked: next line
+timeline = arrive(timeline, { state: result.state, entries: shownEntries(result.interaction) });
+result = choose(result.state, registry, 1); // the player picked option 1 of a choice
+timeline = arrive(timeline, { state: result.state, entries: [/* the pick, the line */] }, 1);
+const back = rollBack(timeline); // the checkpoint before, its entries off the history
+
+const save = createSave(timeline, registry, { savedAt: Date.now(), playTime }); // autosave, a slot
 const text = JSON.stringify(save);
 const parsed = parseSave(text); // validated: { ok: true, save } or { ok: false, reason }
-const state = parsed.ok && restoreSave(parsed.save, registry, variableDefaults);
-if (state) result = run(state, registry); // loading runs the saved line or choice, no replay
+const restored = parsed.ok && restoreSave(parsed.save, registry, variableDefaults);
+if (restored && restored.ok) {
+  const { checkpoints, current } = restored.timeline;
+  result = run(checkpoints[current].state, registry); // the saved line or choice, no replay
+}
 ```
 
 `result` is `{ state, interaction, effects }`:
 
-- `state` — the snapshot a save stores: `{ position, vars, stage, audio }`;
+- `state` — the snapshot a checkpoint keeps: `{ position, vars, stage, audio }`;
 - `interaction` — what the player sees: a `say`, a `choice`, or `end`;
 - `effects` — sounds and music changes met on the way, for the audio layer.
 
@@ -56,13 +65,22 @@ if (state) result = run(state, registry); // loading runs the saved line or choi
   player throws instead of hanging the page.
 - **Typing.** Every id is a plain `string` by default; content narrows them with
   `Command<ContentIds>`, so typos are compile errors while the engine stays generic-free.
+- **The way taken** (`timeline`) — Ren'Py's rollback log and history, as plain data: a checkpoint
+  per line or choice (the state there, what arriving added to the history, the pick made there),
+  128 steps back (`ROLLBACK_LENGTH`), the way forward the player rolled back over, and the
+  history — 250 entries (`HISTORY_LENGTH`) kept as keys: the speaker's id and the Russian line.
+  The history isn't copied into every checkpoint: each knows its own entries, and rolling back
+  takes them off the end.
 - **Saves** are snapshots, not replays — Ren'Py's "saving occurs at the start of a statement".
-  A save is the state on a line or a choice, plus the format `version` and the scene's
-  fingerprint (`sceneHash`, a hash of its compiled program). Loading checks the shape with
-  `zod/mini` and migrates older formats (a newer one is refused); vars follow Ren'Py's
-  `default` — the story's defaults first, then the saved values, minus the removed or retyped.
-  A scene changed since the save starts over with the saved vars; a scene that is gone leaves
-  nothing to resume.
+  A save (format 2) is the way taken, whole: the checkpoints with the one on screen at
+  `current`, the history, the fingerprint of every scene a checkpoint stands in
+  (`sceneHashes`, hashes of their compiled programs), when and after how long. Loading checks
+  the shape with `zod/mini` and migrates older formats (format 1, a single state, becomes one
+  checkpoint with no history; a newer format is refused); vars follow Ren'Py's `default` — the
+  story's defaults first, then the saved values, minus the removed or retyped. A scene edited
+  since the save can't be resumed mid-way: the one on screen starts over with the saved vars,
+  rollback stops short of the newest checkpoint in an edited scene and the way forward short of
+  the oldest; a scene that is gone leaves nothing to resume.
 - **Fingerprints.** `hashText` is the hash behind `sceneHash` (cyrb53, base 36), exported for
   the app: it keys the lines the player has read without copying the story into storage.
 
@@ -73,5 +91,6 @@ types/        commands, ids, text
 state/        GameState, applyInstant (instant commands), effects
 program/      compileScene (flattening), sceneRegistry, hashProgram (scene and text fingerprints)
 interpreter/  startGame, run, advance, choose, step limit
+timeline/     the way taken: checkpoints for rollback, the history
 save/         schema (format + zod), migrate, createSave / parseSave / restoreSave
 ```

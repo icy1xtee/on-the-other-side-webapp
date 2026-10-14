@@ -87,6 +87,22 @@ export const theme = {
     switchOffBackground: 'rgba(255, 255, 255, 0.05)',
     switchOffBorder: 'rgba(255, 255, 255, 0.13)',
     switchOffKnob: '#7d8594',
+    /** A save slot: a card that lights up teal under the pointer and the focus. */
+    slotBackground: 'rgba(255, 255, 255, 0.03)',
+    slotBackgroundHover: 'rgba(255, 255, 255, 0.05)',
+    slotBorderHover: 'rgba(110, 190, 210, 0.42)',
+    slotBorderFocus: 'rgba(110, 190, 210, 0.55)',
+    /** An empty slot: a dashed outline, teal when it can take the game. */
+    emptySlotBackground: 'rgba(255, 255, 255, 0.015)',
+    emptySlotBackgroundHover: 'rgba(56, 130, 150, 0.08)',
+    emptySlotBorderHover: 'rgba(110, 190, 210, 0.45)',
+    emptySlotText: '#7d8594',
+    /** An empty slot in Load, which has nothing to give. */
+    emptySlotBackgroundOff: 'rgba(255, 255, 255, 0.01)',
+    /** The bin over a slot's thumbnail. */
+    binBackground: 'rgba(8, 11, 17, 0.84)',
+    binBorder: 'rgba(255, 255, 255, 0.14)',
+    binFocusRing: 'rgba(226, 140, 126, 0.55)',
   },
   surfaces: {
     stage:
@@ -166,6 +182,11 @@ export const theme = {
     historyTextSize: 15.5,
     historyChoiceSize: 14,
     historyMarkSize: 9.5,
+    slotTitleSize: 14,
+    slotLineSize: 12.5,
+    slotMetaSize: 9.5,
+    autosaveTitleSize: 16,
+    emptySlotSize: 13.5,
     valueSize: 11,
     voiceSize: 9,
   },
@@ -282,7 +303,7 @@ export const theme = {
     thumbRadius: 12,
     lineGap: 7,
   },
-  /** Ren'Py's game menu: the history and the settings now, the saves with stage 4. */
+  /** Ren'Py's game menu: save, load, the history and the settings. */
   gameMenu: {
     width: 960,
     height: 600,
@@ -315,6 +336,29 @@ export const theme = {
     markPaddingY: 3,
     markPaddingX: 7,
     markRadius: 6,
+  },
+  /** The Save and Load sections: the autosave over a grid of six slots, three by two. */
+  slots: {
+    paddingTop: 18,
+    paddingBottom: 28,
+    gap: 18,
+    gridGap: 14,
+    radius: 12,
+    /** An empty slot is as tall as a used one. */
+    emptyMinHeight: 196,
+    bodyGap: 5,
+    bodyPaddingTop: 11,
+    bodyPaddingX: 13,
+    bodyPaddingBottom: 13,
+    autosaveThumbWidth: 228,
+    autosaveThumbHeight: 128,
+    autosaveGap: 6,
+    autosavePaddingY: 14,
+    autosavePaddingX: 18,
+    binSize: 30,
+    binInset: 8,
+    binRadius: 9,
+    binIconSize: 14,
   },
   settings: {
     tabsPaddingTop: 18,

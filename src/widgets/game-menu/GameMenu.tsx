@@ -1,8 +1,9 @@
 import { X } from 'lucide-react';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { SettingsSection } from '@/features/change-settings/SettingsSection';
+import { SlotsSection } from '@/features/save-slots/SlotsSection';
 import { HistorySection } from '@/features/view-history/HistorySection';
 import type { MenuSection } from '@/shared/config/gameMenu';
 import { u } from '@/shared/lib/units';
@@ -18,6 +19,8 @@ type GameMenuProps = {
   onClose: () => void;
   /** In the game only: leave for the main menu, at the rail's foot. */
   onMainMenu?: () => void;
+  /** A window over this one — a question about a save: the menu under it takes nothing. */
+  dialog?: ReactNode;
 };
 
 /**
@@ -25,13 +28,21 @@ type GameMenuProps = {
  * itself on the right. The same window opens from the main menu with only the parts that make
  * sense there. Esc, the cross and a click outside close it.
  */
-export function GameMenu({ section, sections, onSection, onClose, onMainMenu }: GameMenuProps) {
+export function GameMenu({
+  section,
+  sections,
+  onSection,
+  onClose,
+  onMainMenu,
+  dialog,
+}: GameMenuProps) {
   const { t } = useTranslation();
   const titleId = useId();
+  const covered = Boolean(dialog);
 
   return (
     <Window labelledBy={titleId} onClose={onClose}>
-      <Rail>
+      <Rail inert={covered}>
         <Logo>
           <LogoMark />
           <LogoText>on the other side</LogoText>
@@ -53,21 +64,26 @@ export function GameMenu({ section, sections, onSection, onClose, onMainMenu }: 
           </RailFoot>
         )}
       </Rail>
-      <Content>
+      <Content inert={covered}>
         <Head>
-          <Title id={titleId}>{t(`gameMenu.${section}`)}</Title>
+          <Title id={titleId}>{t(`gameMenu.title.${section}`)}</Title>
           <Close aria-label={t('gameMenu.close')} onClick={onClose}>
             <X />
           </Close>
         </Head>
+        {section === 'save' && <SlotsSection mode="save" />}
+        {section === 'load' && <SlotsSection mode="load" />}
         {section === 'history' && <HistorySection />}
         {section === 'settings' && <SettingsSection onDone={onClose} />}
       </Content>
+      {dialog}
     </Window>
   );
 }
 
+// Positioned: a window opened over this one dims this one only.
 const Window = styled(Modal)`
+  position: relative;
   width: ${({ theme }) => u(theme.gameMenu.width)};
   height: ${({ theme }) => u(theme.gameMenu.height)};
   display: flex;

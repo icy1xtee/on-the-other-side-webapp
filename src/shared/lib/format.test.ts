@@ -17,9 +17,9 @@ describe('formatSavedAt', () => {
   // Local time: the player sees the date where they are.
   const savedAt = new Date(2026, 9, 12, 18, 57).getTime();
 
-  it("writes the date and time the way the player's language does", () => {
+  it("writes the date the way the player's language does, the time on a 24-hour clock", () => {
     expect(formatSavedAt(savedAt, 'ru')).toBe('12.10.2026 · 18:57');
-    expect(formatSavedAt(savedAt, 'en')).toMatch(/^10\/12\/2026 · 0?6:57\sPM$/);
+    expect(formatSavedAt(savedAt, 'en')).toBe('10/12/2026 · 18:57');
   });
 });
 

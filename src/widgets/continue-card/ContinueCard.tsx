@@ -20,7 +20,8 @@ export function ContinueCard({ frame, meta, line, onContinue }: ContinueCardProp
 
   return (
     <Card onClick={onContinue}>
-      <Thumbnail frame={frame} />
+      {/* A small square: only the middle of the scene fits, so the characters are put there. */}
+      <Thumbnail frame={frame} centered />
       <Body>
         <TitleRow>
           <Title>{t('menu.continue')}</Title>

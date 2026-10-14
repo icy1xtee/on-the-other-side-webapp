@@ -1,7 +1,9 @@
-import type { GameState, Interaction } from '@engine';
+import type { Interaction } from '../interpreter/interpreter';
+import type { GameState } from '../state/state';
 
 // The way the player has come through the story: the checkpoints rollback returns to and the
-// history read on the way. Pure functions over plain data — GameStore keeps the result.
+// history read on the way — Ren'Py's rollback log and `_history_list`. Pure functions over plain
+// data: the app keeps the result, a save stores it whole.
 
 /** Ren'Py's `config.history_length`: how many entries the history keeps. */
 export const HISTORY_LENGTH = 250;

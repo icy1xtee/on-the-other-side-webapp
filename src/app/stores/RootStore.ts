@@ -8,6 +8,7 @@ import { ReadingStore } from '@/app/stores/ReadingStore';
 import { SaveStore } from '@/app/stores/SaveStore';
 import { SettingsStore } from '@/app/stores/SettingsStore';
 import { UiStore } from '@/app/stores/UiStore';
+import type { LoadSource, SaveSlot } from '@/shared/config/saveSlots';
 import type { AudioOutput } from '@/shared/lib/audio';
 import type { StorageSlot } from '@/shared/lib/storage';
 
@@ -22,8 +23,11 @@ export type RootStoreOptions = {
   variableDefaults: Readonly<Record<string, VarValue>>;
   presentation: Presentation;
   audio: AudioOutput;
-  /** Where the autosave lives. It may refuse to work: the game then plays on without saves. */
-  saveSlot: StorageSlot;
+  /**
+   * Where each save lives — the autosave, the slots. Storage may refuse to work: the game then
+   * plays on without saves.
+   */
+  saveStorage: (source: LoadSource) => StorageSlot;
   /** Where the settings live — apart from the save: they outlive every playthrough. */
   settingsSlot: StorageSlot;
   /** Where `persistent` lives — what the player has read, across playthroughs. */
@@ -50,7 +54,7 @@ export class RootStore {
       variableDefaults,
       presentation,
       audio,
-      saveSlot,
+      saveStorage,
       settingsSlot,
       persistentSlot,
       menuArt,
@@ -63,7 +67,8 @@ export class RootStore {
     this.saves = new SaveStore({
       registry,
       variableDefaults,
-      slot: saveSlot,
+      presentation,
+      storage: saveStorage,
       now,
       // Say it once: in a private window the player would otherwise trust a save that isn't there.
       onUnavailable: () => this.ui.showNotice(i18next.t('notice.autosaveUnavailable')),
@@ -116,13 +121,75 @@ export class RootStore {
     this.game.newGame();
   };
 
-  /** "Продолжить": back to the last line or choice; the menu stays if there is none. */
+  /** "Продолжить": back to the last line or choice — the autosave. */
   continueGame = () => {
-    this.ui.showGame();
-    if (!this.game.continueGame()) {
-      this.ui.showMenu();
+    this.loadGame('auto');
+  };
+
+  /**
+   * A slot picked in the Save section: an empty one takes the game at once, one with a save in
+   * it asks first.
+   */
+  requestSave = (slot: SaveSlot) => {
+    if (this.saves.game(slot)) {
+      this.ui.ask({ type: 'overwrite', slot });
+    } else {
+      this.saveTo(slot);
     }
   };
+
+  /**
+   * A save picked in the Load section. From the main menu it loads at once; in the game it asks
+   * first — the game on screen gives way to it.
+   */
+  requestLoad = (source: LoadSource) => {
+    if (this.ui.screen === 'game') {
+      this.ui.ask({ type: 'load', source });
+    } else {
+      this.loadGame(source);
+    }
+  };
+
+  /** The bin on a slot, or Delete on it: asks first. */
+  requestDelete = (slot: SaveSlot) => {
+    this.ui.ask({ type: 'delete', slot });
+  };
+
+  /** "Yes" to the question over the game menu: does what it asked about. */
+  confirmQuestion = () => {
+    const overlay = this.ui.overlay;
+    const question = overlay?.type === 'gameMenu' ? overlay.question : null;
+    if (!question) {
+      return;
+    }
+    this.ui.dismissQuestion();
+    if (question.type === 'overwrite') {
+      this.saveTo(question.slot);
+    } else if (question.type === 'delete') {
+      this.saves.deleteSlot(question.slot);
+    } else {
+      this.loadGame(question.source);
+    }
+  };
+
+  /** Puts the game on screen into a slot and says how it went. */
+  private saveTo(slot: SaveSlot) {
+    const saved = this.saves.saveTo(slot);
+    this.ui.showNotice(
+      saved ? i18next.t('notice.savedToSlot', { slot }) : i18next.t('notice.saveFailed'),
+      saved ? 'info' : 'error',
+    );
+  }
+
+  /** Plays a saved game from where it was saved; nothing happens if there is none there. */
+  private loadGame(source: LoadSource) {
+    const saved = this.saves.game(source);
+    if (!saved) {
+      return;
+    }
+    this.ui.showGame();
+    this.game.resume(saved);
+  }
 
   /** Back to the main menu, which has no music of its own: the game's track fades out. */
   toMainMenu = () => {

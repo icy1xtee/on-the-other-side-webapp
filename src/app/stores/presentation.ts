@@ -1,5 +1,11 @@
-import type { GameState, Interaction, SpritePosition } from '@engine';
-import type { HistoryEntry } from './timeline';
+import {
+  run,
+  type GameState,
+  type HistoryEntry,
+  type Interaction,
+  type SceneRegistry,
+  type SpritePosition,
+} from '@engine';
 
 // What the player sees, worked out from the engine's state: ids become files and names. Pure
 // functions over plain data — the stores call them from their computed views, the tests call
@@ -50,6 +56,17 @@ export type OptionView = {
 
 /** A line as the menu quotes it: the speaker's name and the text, untranslated. */
 export type QuotedLine = { speaker: string | null; text: string };
+
+/** A save as the menus show it: the Continue card, a slot. */
+export type SavePreview = {
+  frame: FrameView;
+  /** The title of the scene there, untranslated; empty for a scene without one. */
+  sceneTitle: string;
+  /** The line on screen there; null if the save stands on a choice without a prompt. */
+  line: QuotedLine | null;
+  /** Milliseconds since the epoch. */
+  savedAt: number;
+};
 
 /** The frame of a state; no state draws an empty stage. */
 export function frameView(state: GameState | null, presentation: Presentation): FrameView {
@@ -116,6 +133,24 @@ export function quotedLine(
       text: shown.text,
     }
   );
+}
+
+/**
+ * What a save shows of itself, from the state it stands on. The line comes from running that
+ * state — the same `run` loading does, without its effects.
+ */
+export function savePreview(
+  state: GameState,
+  savedAt: number,
+  registry: SceneRegistry,
+  presentation: Presentation,
+): SavePreview {
+  return {
+    frame: frameView(state, presentation),
+    sceneTitle: sceneTitle(state, presentation),
+    line: quotedLine(run(state, registry).interaction, presentation),
+    savedAt,
+  };
 }
 
 /** The line an interaction shows: a spoken or narrated line, or the prompt of a choice. */

@@ -1,12 +1,19 @@
 import {
   advance,
+  arrive,
   choose,
+  goesTheSameWay,
+  rollBack,
+  rollForward,
   run,
+  shownEntries,
   startGame,
+  startTimeline,
   type GameState,
   type Interaction,
   type RunResult,
   type SceneRegistry,
+  type Timeline,
   type VarValue,
 } from '@engine';
 import { makeAutoObservable, observable } from 'mobx';
@@ -17,34 +24,14 @@ import {
   historyView,
   lineView,
   optionViews,
-  quotedLine,
   sceneTitle,
   type FrameView,
   type HistoryView,
   type LineView,
   type OptionView,
   type Presentation,
-  type QuotedLine,
 } from './presentation';
-import type { SaveStore } from './SaveStore';
-import {
-  arrive,
-  goesTheSameWay,
-  rollBack,
-  rollForward,
-  shownEntries,
-  startTimeline,
-  type Timeline,
-} from './timeline';
-
-/** What "Продолжить" leads back to, for the menu's card. Text is the story's source, untranslated. */
-export type ContinuePreview = {
-  frame: FrameView;
-  /** The line on screen there; null if the save stands on a choice without a prompt. */
-  line: QuotedLine | null;
-  /** Milliseconds since the epoch. */
-  savedAt: number;
-};
+import type { SavedGame, SaveStore } from './SaveStore';
 
 export type GameStoreOptions = {
   registry: SceneRegistry;
@@ -52,7 +39,7 @@ export type GameStoreOptions = {
   presentation: Presentation;
   /** Plays the music and sounds the story asks for. */
   audio: AudioOutput;
-  /** Autosaves every line and choice, and holds the game to continue. */
+  /** Autosaves every line and choice, and holds the games to load. */
   saves: SaveStore;
   /** Called when the script runs out — Ren'Py goes back to the main menu then. */
   onEnd: () => void;
@@ -65,8 +52,8 @@ export type GameStoreOptions = {
  * files and names (`presentation.ts`), so the UI never sees content ids; what the engine met on
  * the way is played (`audioEffects.ts`) and the line reached is autosaved (`SaveStore`).
  *
- * It also keeps the way the player has come (`timeline.ts`): the history read so far and the
- * checkpoints rollback returns to, as in Ren'Py.
+ * It also keeps the way the player has come (the engine's timeline): the history read so far and
+ * the checkpoints rollback returns to, as in Ren'Py. Saves hold it whole.
  */
 export class GameStore {
   state: GameState | null = null;
@@ -74,8 +61,8 @@ export class GameStore {
   /** The way taken in this game: the history and the checkpoints; null before a game. */
   timeline: Timeline | null = null;
   /**
-   * The line on screen was reached by rolling back or forward, not by playing on: the frame
-   * changes at once, as rollback shows no transitions.
+   * The line on screen was reached by rolling back or forward, or by loading, not by playing on:
+   * the frame changes at once — Ren'Py shows no transition on rollback, nor after a load.
    */
   travelled = false;
   /** Counts what the player has been shown, so a key changes even on coming back to a step. */
@@ -136,45 +123,20 @@ export class GameStore {
     return optionViews(this.interaction);
   }
 
-  /**
-   * Where "Продолжить" leads: the picture and the line there. The line comes from running the
-   * saved state — the same `run` Continue does, without its effects.
-   */
-  get continuePreview(): ContinuePreview | null {
-    const resumable = this.options.saves.resumable;
-    if (!resumable) {
-      return null;
-    }
-    const { registry, presentation } = this.options;
-    return {
-      frame: frameView(resumable.state, presentation),
-      line: quotedLine(run(resumable.state, registry).interaction, presentation),
-      savedAt: resumable.savedAt,
-    };
-  }
-
   newGame() {
     this.options.saves.startPlaying(0);
     this.apply(startGame(this.options.registry, this.options.variableDefaults), { fresh: true });
   }
 
   /**
-   * Picks the game up where it was left: on the same line or choice, with the same stage, vars
-   * and music. Runs just that one statement — no replay. False when there is nothing to resume.
-   * The way back isn't in the save yet (stage 4): rollback starts afresh from here.
+   * Picks a saved game up — Continue, Load: on its line or choice, with its stage, vars and music,
+   * its history and its way back and forward. Runs just that one statement — no replay, so no
+   * sounds; the music comes back from the state, and `ifChanged` keeps a track that already
+   * plays. The autosave takes the loaded game at once, as Ren'Py's does from its first line.
    */
-  continueGame(): boolean {
-    const { saves, registry } = this.options;
-    const resumed = saves.resumable;
-    if (!resumed) {
-      return false;
-    }
-    saves.startPlaying(resumed.playTime);
-    this.apply(run(resumed.state, registry), { fresh: true });
-    // Nothing was re-executed, so nothing re-played: the music comes back from the state.
-    // `ifChanged`: coming back from the menu to the same scene, the track isn't restarted.
-    this.restoreMusic(resumed.state);
-    return true;
+  resume(saved: SavedGame) {
+    this.options.saves.startPlaying(saved.playTime);
+    this.travel(saved.timeline);
   }
 
   /** The player clicked through the current line. Ignored when there is no line to pass. */
@@ -225,7 +187,7 @@ export class GameStore {
     this.state = result.state;
     this.interaction = result.interaction;
     this.restoreMusic(result.state);
-    this.options.saves.autosave(result.state);
+    this.options.saves.autosave(timeline);
     return true;
   }
 
@@ -256,15 +218,14 @@ export class GameStore {
         ...shownEntries(result.interaction),
       ],
     };
-    const timeline = this.timeline;
-    if (fresh || !timeline) {
-      this.timeline = startTimeline(checkpoint);
-    } else if (goesTheSameWay(timeline, chosen?.index)) {
-      this.timeline = rollForward(timeline);
-    } else {
-      this.timeline = arrive(timeline, checkpoint, chosen?.index);
-    }
-    saves.autosave(result.state);
+    const before = this.timeline;
+    const sameWay = before && goesTheSameWay(before, chosen?.index) ? rollForward(before) : null;
+    const timeline =
+      fresh || !before
+        ? startTimeline(checkpoint)
+        : (sameWay ?? arrive(before, checkpoint, chosen?.index));
+    this.timeline = timeline;
+    saves.autosave(timeline);
   }
 
   /** The track a state plays, restarted only if another one plays now. */

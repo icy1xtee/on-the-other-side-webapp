@@ -30,17 +30,30 @@ export function StageFrame({ frame }: { frame: Frame }) {
   );
 }
 
+type FrameThumbnailProps = {
+  frame: Frame;
+  /**
+   * The characters stand in the middle, wherever they stand on the stage: a box much narrower
+   * than the scene crops its sides away, and the characters with them.
+   */
+  centered?: boolean;
+  className?: string;
+};
+
 /**
  * The same frame shrunk into a box of any shape — a save's thumbnail. The scene keeps its
  * proportions and is cropped to the box from the middle, like `cover`; the characters stand
- * where they stand on the stage.
+ * where they stand on the stage, or in the middle.
  */
-export function FrameThumbnail({ frame, className }: { frame: Frame; className?: string }) {
+export function FrameThumbnail({ frame, centered = false, className }: FrameThumbnailProps) {
+  const sprites = centered
+    ? frame.sprites.map((sprite) => ({ ...sprite, at: 'center' as const }))
+    : frame.sprites;
   return (
     <ThumbnailBox className={className}>
       <ThumbnailScene>
         {frame.background && <Background src={frame.background} alt="" draggable={false} />}
-        <Sprites sprites={frame.sprites} $top={(theme) => `${headerShare(theme)}%`} />
+        <Sprites sprites={sprites} $top={(theme) => `${headerShare(theme)}%`} />
       </ThumbnailScene>
     </ThumbnailBox>
   );

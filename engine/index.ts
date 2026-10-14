@@ -28,7 +28,28 @@ export {
   type RunResult,
 } from './interpreter/interpreter';
 
+export {
+  arrive,
+  goesTheSameWay,
+  HISTORY_LENGTH,
+  rollBack,
+  rollForward,
+  ROLLBACK_LENGTH,
+  shownEntries,
+  startTimeline,
+  type Checkpoint,
+  type HistoryEntry,
+  type Timeline,
+} from './timeline/timeline';
+
 export { SAVE_VERSION, type SaveData } from './save/schema';
-export { createSave, parseSave, restoreSave, type ParsedSave, type SaveMeta } from './save/save';
+export {
+  createSave,
+  parseSave,
+  restoreSave,
+  type ParsedSave,
+  type RestoredSave,
+  type SaveMeta,
+} from './save/save';
 
 export { EngineError } from './errors';

@@ -12,7 +12,7 @@ import { isSystemControl } from './isSystemControl';
  * keys for Skip: Tab turns it on and off, Ctrl skips while held; for rollback: PageUp and the
  * wheel up go back, PageDown and the wheel down forward. Clicks and keys aimed at system
  * controls belong to those controls; while a window is open over the game, none reach it. Esc
- * opens the game menu, as in Ren'Py: the settings and the way to the main menu are there.
+ * opens the game menu on Save, as in Ren'Py.
  *
  * Here too runs the typewriter, which reports to the store when the line has typed out. The line
  * comes out translated: the store holds the Russian source, which is also the key of its
@@ -41,7 +41,7 @@ export function useAdvanceDialogue() {
         return;
       }
       if (event.key === 'Escape') {
-        ui.openGameMenu();
+        ui.openGameMenu('save');
         return;
       }
       if (event.key === 'Control') {

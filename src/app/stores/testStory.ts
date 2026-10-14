@@ -3,6 +3,7 @@
 
 import { createSceneRegistry, type SceneRegistry } from '@engine';
 import { vi } from 'vitest';
+import type { LoadSource, SaveSlot } from '@/shared/config/saveSlots';
 import { GameStore } from './GameStore';
 import type { Presentation } from './presentation';
 import { SaveStore } from './SaveStore';
@@ -79,9 +80,14 @@ export const presentation: Presentation = {
   },
 };
 
+type MemorySlot = ReturnType<typeof memorySlot>;
+
 type GameOptions = {
   registry?: SceneRegistry;
-  slot?: ReturnType<typeof memorySlot>;
+  /** The autosave's storage. */
+  slot?: MemorySlot;
+  /** The slots' storage, filled as they are opened; the same map again is a page reloaded. */
+  slots?: Map<SaveSlot, MemorySlot>;
   onEnd?: () => void;
   onUnavailable?: () => void;
   now?: () => number;
@@ -92,16 +98,26 @@ export function createGame(options: GameOptions = {}) {
   const {
     registry: story = registry,
     slot = memorySlot(),
+    slots = new Map<SaveSlot, MemorySlot>(),
     onEnd = vi.fn(),
     onUnavailable,
     now,
   } = options;
   const audio = fakeAudio();
   const variableDefaults = { trust: 0 };
+  const storage = (source: LoadSource) => {
+    if (source === 'auto') {
+      return slot;
+    }
+    const manual = slots.get(source) ?? memorySlot();
+    slots.set(source, manual);
+    return manual;
+  };
   const saves = new SaveStore({
     registry: story,
     variableDefaults,
-    slot,
+    presentation,
+    storage,
     onUnavailable,
     now,
   });
@@ -113,5 +129,11 @@ export function createGame(options: GameOptions = {}) {
     saves,
     onEnd,
   });
-  return { game, saves, slot, audio, onEnd };
+  return { game, saves, slot, slots, audio, onEnd };
+}
+
+/** Where a save in storage stands: the position of its checkpoint on screen. */
+export function savedPosition(text: string | null): unknown {
+  const save = JSON.parse(text ?? 'null');
+  return save?.checkpoints[save.current]?.state.position;
 }

@@ -1,26 +1,27 @@
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
+import { SlotQuestionDialog } from '@/features/save-slots/SlotQuestionDialog';
 import type { MenuSection } from '@/shared/config/gameMenu';
 import { formatSavedAt } from '@/shared/lib/format';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { u } from '@/shared/lib/units';
 import { PlainButton } from '@/shared/ui/PlainButton';
-import { ConfirmDialog } from '@/widgets/confirm-dialog/ConfirmDialog';
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { ContinueCard } from '@/widgets/continue-card/ContinueCard';
 import { GameMenu } from '@/widgets/game-menu/GameMenu';
 import { Stage } from '@/widgets/stage/Stage';
 
 /** What the game menu offers from here: no saving or history before a game is started. */
-const MENU_SECTIONS: readonly MenuSection[] = ['settings'];
+const MENU_SECTIONS: readonly MenuSection[] = ['load', 'settings'];
 
 // The menu lives on the same stage as the game, like Ren'Py's main_menu: one set of sizes and
 // the same "turn your device" hint. The art is the stage's scene layer.
 export const MainMenuPage = observer(function MainMenuPage() {
-  const { ui, game, settings, menuArt, requestNewGame, newGame, continueGame } = useStores();
+  const { ui, saves, settings, menuArt, requestNewGame, newGame, continueGame } = useStores();
   const { t } = useTranslation();
   const { t: tStory } = useTranslation('story');
-  const preview = game.continuePreview;
+  const preview = saves.preview('auto');
   const overlay = ui.overlay;
 
   const line =
@@ -59,6 +60,7 @@ export const MainMenuPage = observer(function MainMenuPage() {
             )}
             <Nav aria-label={t('menu.items')}>
               <Item onClick={requestNewGame}>{t('menu.newGame')}</Item>
+              <Item onClick={() => ui.openGameMenu('load')}>{t('menu.load')}</Item>
               <Item onClick={() => ui.openGameMenu('settings')}>{t('menu.settings')}</Item>
             </Nav>
           </Choices>
@@ -72,6 +74,7 @@ export const MainMenuPage = observer(function MainMenuPage() {
               sections={MENU_SECTIONS}
               onSection={ui.showMenuSection}
               onClose={ui.closeOverlay}
+              dialog={overlay.question && <SlotQuestionDialog question={overlay.question} />}
             />
           )}
           {overlay?.type === 'confirmNewGame' && (

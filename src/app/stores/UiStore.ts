@@ -1,10 +1,16 @@
 import { makeAutoObservable } from 'mobx';
 import type { MenuSection } from '@/shared/config/gameMenu';
+import type { SlotQuestion } from '@/shared/config/saveSlots';
 
 export type Screen = 'menu' | 'game';
 
-/** A window over the screen: the game menu on one of its parts, or "start over the saved game?". */
-export type Overlay = { type: 'gameMenu'; section: MenuSection } | { type: 'confirmNewGame' };
+/**
+ * A window over the screen: the game menu on one of its parts — with a question over it, maybe —
+ * or "start over the saved game?".
+ */
+export type Overlay =
+  | { type: 'gameMenu'; section: MenuSection; question: SlotQuestion | null }
+  | { type: 'confirmNewGame' };
 
 /** `error` when something the player asked for failed — the toast then says so in red. */
 export type NoticeTone = 'info' | 'error';
@@ -39,14 +45,28 @@ export class UiStore {
   }
 
   /** Ren'Py's game menu, opened on one of its parts; from the main menu it is the same window. */
-  openGameMenu(section: MenuSection = 'settings') {
-    this.overlay = { type: 'gameMenu', section };
+  openGameMenu(section: MenuSection) {
+    this.overlay = { type: 'gameMenu', section, question: null };
   }
 
   /** Another part of the open game menu. */
   showMenuSection(section: MenuSection) {
     if (this.overlay?.type === 'gameMenu') {
-      this.overlay = { type: 'gameMenu', section };
+      this.overlay = { type: 'gameMenu', section, question: null };
+    }
+  }
+
+  /** Asks about a save over the open game menu. */
+  ask(question: SlotQuestion) {
+    if (this.overlay?.type === 'gameMenu') {
+      this.overlay = { ...this.overlay, question };
+    }
+  }
+
+  /** The question over the game menu is answered or dismissed: back to the menu. */
+  dismissQuestion() {
+    if (this.overlay?.type === 'gameMenu') {
+      this.overlay = { ...this.overlay, question: null };
     }
   }
 
