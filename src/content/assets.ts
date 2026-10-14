@@ -3,15 +3,20 @@ import streetBackground from '@/assets/backgrounds/street.svg';
 import mila from '@/assets/characters/mila.webp';
 import themeMusic from '@/assets/music/theme.mp3';
 import milaPortrait from '@/assets/portraits/mila.webp';
+import doorSound from '@/assets/sounds/door.ogg';
+import knockSound from '@/assets/sounds/knock.ogg';
+import stepsSound from '@/assets/sounds/steps.ogg';
 import type { BackgroundId, CharacterId, EmotionOf, MusicId, SfxId } from './ids';
 import type { SpeakerId } from './speakers';
 
 /**
  * Which file stands behind each id — Ren'Py's `image` statements. `satisfies` makes a missing
- * background, emotion or track a compile error.
+ * background, emotion, track or sound a compile error.
  *
  * Demo art comes from the design reference. There is one drawing of Mila so far, so all her
- * emotions share it until the real sprites arrive. The theme is the demo track Pavel picked.
+ * emotions share it until the real sprites arrive. The theme is the demo track Pavel picked; the
+ * sounds are Kenney's (CC0) until the game's own — where they come from is in
+ * `assets/sounds/CREDITS.md`.
  */
 export const assets = {
   backgrounds: {
@@ -27,8 +32,11 @@ export const assets = {
   music: {
     theme: themeMusic,
   } satisfies Record<MusicId, string>,
-  // No sound files yet (stage 6 of 0.2): a sound without one plays nothing.
-  sounds: {} satisfies Partial<Record<SfxId, string>>,
+  sounds: {
+    knock: knockSound,
+    door: doorSound,
+    steps: stepsSound,
+  } satisfies Record<SfxId, string>,
 };
 
 /** The main menu's key art: the room and Mila until real key art is drawn. */
@@ -36,3 +44,9 @@ export const menuArt = {
   background: roomBackground,
   character: mila,
 };
+
+/**
+ * The main menu's track — Ren'Py's `config.main_menu_music`: the game's theme, so it plays on
+ * without a break from the menu into the game and back.
+ */
+export const menuMusic = themeMusic;

@@ -53,8 +53,13 @@ PR into `main` and on `main` itself.
   added ~90 KB to the bundle, mini ~26 KB).
 - Audio: **howler.js**, touched only by `shared/lib/audio.ts` (`AudioOutput`: channels `music`
   and `sound`, crossfade, `ifChanged`). The engine reports music and sounds as effects;
-  `GameStore` plays them. Music starts from a click (New game, Continue) — the autoplay policy
-  allows it after a gesture.
+  `GameStore` plays them. The main menu has a track of its own (`menuMusic`, Ren'Py's
+  `config.main_menu_music`) — the game's theme, played `ifChanged` like the demo's first, so the
+  music goes on without a break from the menu into the game and back; the way to the menu stops
+  the sounds, as Ren'Py does. The page asks for the track at once; the autoplay policy holds it
+  until the first click or key anywhere, and howler's `unlock` starts it then. Scene sounds are
+  Kenney's (CC0) for now, Ogg in `src/assets/sounds/` with `CREDITS.md` (where each comes from),
+  loaded at boot.
 - Icons: **lucide-react**, named imports only (`import { Cog } from 'lucide-react'`) so the
   bundle keeps just the icons in use. Don't pass `size` / `strokeWidth`: the button holding an
   icon sizes it through `u()` and draws it at `theme.icons.strokeWidth`. Icons are decorative by
@@ -69,8 +74,10 @@ PR into `main` and on `main` itself.
 - Lint: oxlint's `only-export-components` knows MobX's `observer` (`customHOCs`), so a file
   may hold several `observer` components.
 - Fonts: Geist / Geist Mono from `@fontsource/geist` and `@fontsource/geist-mono` (the Google
-  Fonts builds, **with Cyrillic** — `@fontsource/geist-sans` is Latin-only). Import the
-  per-weight CSS (`400.css`); the per-subset files lack `unicode-range` and can't be combined.
+  Fonts builds, **with Cyrillic** — `@fontsource/geist-sans` is Latin-only). The package CSS isn't
+  imported: `app/styles/fonts.css` declares its own `@font-face` for the faces in use only —
+  Geist 400 and 500, Geist Mono 400 — Latin and Cyrillic, each with the package's `unicode-range`
+  (`unicode.json`), woff2 from `@fontsource/<font>/files/`. Another weight needs its faces there.
 
 ## Design
 
@@ -111,8 +118,8 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
               engine/README.md before touching it.
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
-src/app/stores  RootStore (wires the stores; the main menu's art; saving, loading, deleting —
-              asking first where it must), UiStore (screen, the `overlay` over it — the game menu
+src/app/stores  RootStore (wires the stores; the main menu's art and music; saving, loading,
+              deleting — asking first where it must), UiStore (screen, the `overlay` over it — the game menu
               on one of its sections, maybe with a question about a save over it, or a
               confirmation — and notices), GameStore (the game loop: MobX wrapper around the
               engine — new game, resume a save, advance, choose, roll back and forward; keeps the
@@ -175,11 +182,12 @@ src/widgets   also: dialogue-box (namebox, line, icon buttons — Auto and Skip 
               «Назад» greyed with nowhere to go back to; meta line), mode-indicator (AUTO ▸ /
               SKIP ▸▸), game-header, continue-card, notice (the toast), stage. The confirmation
               window is `shared/ui/ConfirmDialog`, on `shared/ui/Modal`
-src/content   the story: ids, speakers, variables, assets (files behind ids; the menu's art),
-              scene titles, factories (dsl.ts), scenes
+src/content   the story: ids, speakers, variables, assets (files behind ids; the menu's art and
+              music), scene titles, factories (dsl.ts), scenes
 src/content/__dev__  test scenes, not part of the game (branching): `?dev=branching` on the
               dev server; `?dev=<scene>` starts from any scene. Left out of production builds
-src/assets    art and music files (WebP / SVG / MP3)
+src/assets    art, music and sound files (WebP / SVG / MP3 / Ogg); sounds/CREDITS.md says where
+              the sounds come from
 e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
               (click and digit), Continue after a reload, reading at a speed, Auto and Skip,
               rollback through the choice, the history, save slots (save, load in the game and

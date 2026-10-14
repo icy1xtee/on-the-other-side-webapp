@@ -31,6 +31,7 @@ export function fakeAudio() {
   return {
     playMusic: vi.fn<AudioOutput['playMusic']>(),
     playSound: vi.fn<AudioOutput['playSound']>(),
+    stopSounds: vi.fn<AudioOutput['stopSounds']>(),
     setVolumes: vi.fn<AudioOutput['setVolumes']>(),
     setMuted: vi.fn<AudioOutput['setMuted']>(),
   };

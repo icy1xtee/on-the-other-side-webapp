@@ -20,7 +20,7 @@
 | 3 | History и rollback | готов | [03-history-rollback.md](./03-history-rollback.md) · [реестр](./task-registry/03-history-rollback/) |
 | 4 | Слоты | готов | [04-save-slots.md](./04-save-slots.md) · [реестр](./task-registry/04-save-slots/) |
 | 5 | Анимации | готов | [05-animations.md](./05-animations.md) · [реестр](./task-registry/05-animations/) |
-| 6 | Звук и техдолг | не начат | [06-sound-tech-debt.md](./06-sound-tech-debt.md) · [реестр](./task-registry/06-sound-tech-debt/) |
+| 6 | Звук и техдолг | на проверке | [06-sound-tech-debt.md](./06-sound-tech-debt.md) · [реестр](./task-registry/06-sound-tech-debt/) |
 | 7 | Полировка и сдача 0.2 | не начат | [07-polish.md](./07-polish.md) · [реестр](./task-registry/07-polish/) |
 
 ---
@@ -28,6 +28,22 @@
 ## Журнал
 
 Записи добавляются в начало.
+
+### Этап 6 — Звук и техдолг · 2026-10-14 · на проверке
+
+Ветка `feat/0.2-stage-6-sound-tech-debt`, одним заходом; подробности — в
+[реестре](./task-registry/06-sound-tech-debt/).
+
+**Сделано:**
+- **Музыка меню** — `theme` в главном меню, без перерыва в игру и обратно (`ifChanged`, как
+  `config.main_menu_music` в Ren'Py); стартует с первого клика или клавиши; на выходе в меню
+  звуки глохнут.
+- **Звуки сцены** — стук, дверь, шаги из Kenney RPG Audio (CC0), `src/assets/sounds/CREDITS.md`.
+- **Шрифты** — свои `@font-face` (Geist 400 и 500, Geist Mono 400; латиница и кириллица):
+  CSS 69,8 → 1,55 КБ, пункт 1 техдолга закрыт. Трек — пока MP3, пункт 2 открыт.
+
+**Проверено:** `lint`, `typecheck`, `test` (244), `format:check`, `build`, `e2e` (16); звук —
+в Chromium с политикой автоплея, шрифты — обходом всех экранов. Спорные моменты (9) — в реестре.
 
 ### Этап 5 — Анимации · 2026-10-14 · готов
 

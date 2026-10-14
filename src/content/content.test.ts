@@ -12,6 +12,8 @@ describe('demo content', () => {
     const lines: string[] = [];
     const visited: string[] = [];
     const transitions: string[] = [];
+    const tracks: { asset: string | null; ifChanged: boolean }[] = [];
+    const sounds: string[] = [];
     for (let guard = 0; guard < 200 && result.interaction.type !== 'end'; guard += 1) {
       const { interaction, state, effects } = result;
       if (visited.at(-1) !== state.position.sceneId) {
@@ -20,6 +22,10 @@ describe('demo content', () => {
       for (const effect of effects) {
         if (effect.type === 'transition') {
           transitions.push(effect.transition);
+        } else if (effect.type === 'music') {
+          tracks.push({ asset: effect.asset, ifChanged: effect.ifChanged });
+        } else {
+          sounds.push(effect.asset);
         }
       }
       if (interaction.type === 'say') {
@@ -30,7 +36,7 @@ describe('demo content', () => {
         result = choose(state, registry, answer);
       }
     }
-    return { result, lines, visited, transitions };
+    return { result, lines, visited, transitions, tracks, sounds };
   }
 
   it('boots: every scene compiles and every goTo leads somewhere', () => {
@@ -60,6 +66,23 @@ describe('demo content', () => {
   it('shows every transition on the way: the knock shakes, Mila moves, the scenes fade', () => {
     expect(playThrough(0).transitions).toEqual(['vpunch', 'move', 'fade', 'fade']);
   });
+
+  it.each([
+    [0, ['knock', 'door', 'steps']],
+    [1, ['knock', 'steps', 'steps']],
+    [2, ['knock', 'steps', 'steps']],
+  ])(
+    'keeps the theme the menu plays, and sounds the knock, the door and the steps (%i)',
+    (answer, sounds) => {
+      const played = playThrough(answer);
+
+      expect(played.tracks).toEqual([
+        { asset: 'theme', ifChanged: true },
+        { asset: 'theme', ifChanged: true },
+      ]);
+      expect(played.sounds).toEqual(sounds);
+    },
+  );
 });
 
 describe('factories', () => {

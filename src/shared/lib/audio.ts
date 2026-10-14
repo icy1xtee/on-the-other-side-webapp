@@ -16,6 +16,8 @@ export type AudioOutput = {
    */
   playMusic(src: string | null, options?: { ifChanged?: boolean }): void;
   playSound(src: string): void;
+  /** Cuts every sound short — Ren'Py stops its `sound` channel on the way to the main menu. */
+  stopSounds(): void;
   setVolumes(volumes: Volumes): void;
   /** Silences everything without touching the volumes — Ren'Py's "Mute All". */
   setMuted(muted: boolean): void;
@@ -26,14 +28,32 @@ export type AudioOutput = {
  * sounds over each other. Nothing else in the app touches howler, so moving to the Web Audio API
  * would change this file alone.
  *
- * The browser's autoplay policy needs no special handling: music starts from a click (New game,
- * Continue), and a page that has had a click may play sound. Should a play still be refused,
- * howler's `unlock` retries it on the next gesture.
+ * The browser's autoplay policy: the main menu's track is asked for as the page opens, before the
+ * player has clicked or pressed anything, and the browser refuses it. The track then waits for
+ * howler's `unlock` — the first click or key anywhere — and starts on it. Sounds play only in the
+ * game, which the player has clicked their way into.
+ *
+ * `sounds` are loaded up front, so the first knock isn't late for its line.
  */
-export function createAudioPlayer({ fadeMs }: { fadeMs: number }): AudioOutput {
+export function createAudioPlayer({
+  fadeMs,
+  sounds: preloaded = [],
+}: {
+  fadeMs: number;
+  sounds?: readonly string[];
+}): AudioOutput {
   let music: { src: string; howl: Howl } | null = null;
   let volumes: Volumes = { master: 1, music: 1, sound: 1 };
   const sounds = new Map<string, Howl>();
+  const soundFor = (src: string) => {
+    let howl = sounds.get(src);
+    if (!howl) {
+      howl = new Howl({ src: [src] });
+      sounds.set(src, howl);
+    }
+    return howl;
+  };
+  preloaded.forEach(soundFor);
 
   const fadeOut = (howl: Howl) => {
     howl.once('fade', () => howl.unload());
@@ -58,7 +78,11 @@ export function createAudioPlayer({ fadeMs }: { fadeMs: number }): AudioOutput {
         html5: true,
         loop: true,
         volume: 0,
-        onplayerror: () => howl.once('unlock', () => howl.play()),
+        // Howler may report one refusal twice: the track waits for the unlock once.
+        onplayerror: () => {
+          howl.off('unlock');
+          howl.once('unlock', () => howl.play());
+        },
       });
       howl.play();
       howl.fade(0, volumes.music, fadeMs);
@@ -66,13 +90,15 @@ export function createAudioPlayer({ fadeMs }: { fadeMs: number }): AudioOutput {
     },
 
     playSound(src) {
-      let howl = sounds.get(src);
-      if (!howl) {
-        howl = new Howl({ src: [src] });
-        sounds.set(src, howl);
-      }
+      const howl = soundFor(src);
       howl.volume(volumes.sound);
       howl.play();
+    },
+
+    stopSounds() {
+      for (const howl of sounds.values()) {
+        howl.stop();
+      }
     },
 
     setVolumes(next) {

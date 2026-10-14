@@ -33,6 +33,8 @@ export type RootStoreOptions = {
   /** Where `persistent` lives — what the player has read, across playthroughs. */
   persistentSlot: StorageSlot;
   menuArt: MenuArt;
+  /** The main menu's track, a file — Ren'Py's `config.main_menu_music`; null for silence. */
+  menuMusic: string | null;
   /** The clock, in milliseconds since the epoch; tests pass their own. */
   now?: () => number;
 };
@@ -101,6 +103,9 @@ export class RootStore {
       () => this.settings.language,
       (language) => void i18next.changeLanguage(language),
     );
+
+    // The game opens on the main menu, and so with its track.
+    this.playMenuMusic();
   }
 
   /**
@@ -191,11 +196,20 @@ export class RootStore {
     this.game.resume(saved);
   }
 
-  /** Back to the main menu, which has no music of its own: the game's track fades out. */
+  /** Back to the main menu: as in Ren'Py, the sounds stop there and the menu's track plays. */
   toMainMenu = () => {
-    this.options.audio.playMusic(null);
+    this.options.audio.stopSounds();
+    this.playMenuMusic();
     this.ui.showMenu();
   };
+
+  /**
+   * The menu's track, as Ren'Py plays it — `if_changed`: the game's track goes on if it is the
+   * same one, and the menu → game → menu round has no break in the music.
+   */
+  private playMenuMusic() {
+    this.options.audio.playMusic(this.options.menuMusic, { ifChanged: true });
+  }
 }
 
 // Lower layers see the stores through `AppStores` from shared/, never through this file.
