@@ -49,6 +49,18 @@ export class UiStore {
     this.overlay = { type: 'gameMenu', section, question: null };
   }
 
+  /**
+   * F1, Ren'Py's help key: the game menu on «Управление», from any screen and over any part of
+   * the menu — but not over a question waiting for its answer.
+   */
+  openControls() {
+    const overlay = this.overlay;
+    if (overlay?.type === 'confirmNewGame' || (overlay?.type === 'gameMenu' && overlay.question)) {
+      return;
+    }
+    this.openGameMenu('controls');
+  }
+
   /** Another part of the open game menu. */
   showMenuSection(section: MenuSection) {
     if (this.overlay?.type === 'gameMenu') {

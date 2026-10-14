@@ -1,5 +1,6 @@
 import { useEffect, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { actionOfKey } from '@/shared/config/keymap';
 import { useStores } from '@/shared/lib/stores/useStores';
 import { useTypewriter } from '@/shared/lib/useTypewriter';
 import { WHEEL_START, wheelStep } from '@/shared/lib/wheelSteps';
@@ -7,12 +8,13 @@ import { isSystemControl } from './isSystemControl';
 
 /**
  * Turns the player's clicks and keys into the reading store's commands; how far the line is read
- * and what going on means live there (`ReadingStore`). A click anywhere on the stage, Space or
- * Enter all request the advance; keys 1–9 pick an option once the options are out. Ren'Py's
- * keys for Skip: Tab turns it on and off, Ctrl skips while held; for rollback: PageUp and the
- * wheel up go back, PageDown and the wheel down forward. Clicks and keys aimed at system
- * controls belong to those controls; while a window is open over the game, none reach it. Esc
- * opens the game menu on Save, as in Ren'Py.
+ * and what going on means live there (`ReadingStore`). Which key does what is the keymap's
+ * (`shared/config/keymap.ts`, Ren'Py's `config.keymap`), which «Управление» shows the player: a
+ * click anywhere on the stage, Space or Enter all request the advance; keys 1–9 pick an option
+ * once the options are out. Ren'Py's keys for Skip: Tab turns it on and off, Ctrl skips while
+ * held; for rollback: PageUp and the wheel up go back, PageDown and the wheel down forward.
+ * Clicks and keys aimed at system controls belong to those controls; while a window is open over
+ * the game, none reach it. Esc opens the game menu on Save, as in Ren'Py.
  *
  * Here too runs the typewriter, which reports to the store when the line has typed out. The line
  * comes out translated: the store holds the Russian source, which is also the key of its
@@ -43,60 +45,60 @@ export function useAdvanceDialogue() {
       if (ui.overlay) {
         return;
       }
-      if (event.key === 'Escape') {
-        ui.openGameMenu('save');
-        return;
-      }
-      if (event.key === 'Control') {
-        reading.holdSkip(true);
-        return;
-      }
-      // Tab toggles Skip, unless the focus is already on a control: there it moves the focus
-      // on, and Shift+Tab always does — the panel's buttons stay reachable from the keyboard.
-      if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.metaKey) {
-        if (event.ctrlKey || isSystemControl(event.target)) {
+      // Which key does what is the keymap's; F1 is the app's, on every screen.
+      switch (actionOfKey(event.key)) {
+        case 'gameMenu':
+          ui.openGameMenu('save');
           return;
-        }
-        event.preventDefault();
-        if (!event.repeat) {
-          reading.toggleSkip();
-        }
-        return;
-      }
-      // Ren'Py's rollback keys; held, they keep going.
-      if (event.key === 'PageUp' || event.key === 'PageDown') {
-        event.preventDefault();
-        if (event.key === 'PageUp') {
-          reading.rollBack();
-        } else {
-          reading.rollForward();
-        }
-        return;
-      }
-      // 1–9 pick the options on screen, in the order shown.
-      if (/^[1-9]$/.test(event.key)) {
-        if (!event.repeat && reading.pickOption(Number(event.key))) {
+        case 'holdSkip':
+          reading.holdSkip(true);
+          return;
+        // Tab toggles Skip, unless the focus is already on a control: there it moves the focus
+        // on, and Shift+Tab always does — the panel's buttons stay reachable from the keyboard.
+        case 'toggleSkip':
+          if (event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
+            return;
+          }
+          if (isSystemControl(event.target)) {
+            return;
+          }
           event.preventDefault();
-        }
-        return;
+          if (!event.repeat) {
+            reading.toggleSkip();
+          }
+          return;
+        // Ren'Py's rollback keys; held, they keep going.
+        case 'rollBack':
+          event.preventDefault();
+          reading.rollBack();
+          return;
+        case 'rollForward':
+          event.preventDefault();
+          reading.rollForward();
+          return;
+        // 1–9 pick the options on screen, in the order shown.
+        case 'pick':
+          if (!event.repeat && reading.pickOption(Number(event.key))) {
+            event.preventDefault();
+          }
+          return;
+        case 'advance':
+          // A focused button handles Space and Enter itself; advancing too would double the
+          // action.
+          if (isSystemControl(event.target)) {
+            return;
+          }
+          event.preventDefault();
+          // A held key auto-repeats: without this, holding Space would race through the scene.
+          if (!event.repeat) {
+            reading.requestAdvance();
+          }
+          return;
       }
-      if (event.key !== ' ' && event.key !== 'Enter') {
-        return;
-      }
-      // A focused button handles Space and Enter itself; advancing too would double the action.
-      if (isSystemControl(event.target)) {
-        return;
-      }
-      event.preventDefault();
-      // A held key auto-repeats: without this, holding Space would race through the scene.
-      if (event.repeat) {
-        return;
-      }
-      reading.requestAdvance();
     };
     // Ctrl let go — or never seen let go: Ctrl+Tab and the like take the window away first.
     const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key === 'Control') {
+      if (actionOfKey(event.key) === 'holdSkip') {
         reading.holdSkip(false);
       }
     };

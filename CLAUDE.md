@@ -119,9 +119,9 @@ engine/       the engine, standalone: pure TS over plain data — no React, MobX
 src/main.tsx  composition root: content scenes + engine registry → RootStore
 src/app, pages, widgets, features, entities, shared   FSD in spirit; import only downward
 src/app/stores  RootStore (wires the stores; the main menu's art and music; saving, loading,
-              deleting — asking first where it must), UiStore (screen, the `overlay` over it — the game menu
-              on one of its sections, maybe with a question about a save over it, or a
-              confirmation — and notices), GameStore (the game loop: MobX wrapper around the
+              deleting — asking first where it must), UiStore (screen, the `overlay` over it — the
+              game menu on one of its sections, maybe with a question about a save over it, or a
+              confirmation — and notices; F1's «Управление»), GameStore (the game loop: MobX wrapper around the
               engine — new game, resume a save, advance, choose, roll back and forward; keeps the
               engine's timeline; its views go through `presentation.ts`, pure functions that
               turn ids into image URLs, names and scene titles, so UI never sees content ids; the
@@ -145,12 +145,15 @@ src/shared/lib/storage.ts  localStorage that never throws (blocked, private, ful
               the game plays on); keys in shared/config/storageKeys.ts, prefix `ots:` — saves
               under `ots:save:auto`, `ots:save:1` … `ots:save:6` (`?dev=` runs: `ots:save:dev…`)
 src/shared/lib/audio.ts  the only file that knows howler
-src/features/advance-dialogue  input into ReadingStore's commands: click on the frame (not on
-              system controls), Space/Enter → requestAdvance; keys 1–9; Tab → Skip on and off
-              (unless the focus is on a control), Ctrl → Skip while held; PageUp / the wheel up →
-              roll back, PageDown / the wheel down → forward (shared/lib/wheelSteps: a notch or a
-              swipe is a step); Esc → the game menu on Save; nothing reaches the game while a
-              window is open. Runs the typewriter (shared/lib/useTypewriter, rAF; held while a
+src/shared/config/keymap.ts  what the keys and the mouse do — Ren'Py's `config.keymap`: each
+              action with its inputs, and «Управление»'s groups. The input handlers ask it which
+              action a key is, «Управление» draws it: a key bound here shows up there
+src/features/advance-dialogue  input into ReadingStore's commands, keys by the keymap: click on
+              the frame (not on system controls), Space/Enter → requestAdvance; keys 1–9; Tab →
+              Skip on and off (unless the focus is on a control), Ctrl → Skip while held; PageUp /
+              the wheel up → roll back, PageDown / the wheel down → forward (shared/lib/wheelSteps:
+              a notch or a swipe is a step); Esc → the game menu on Save; nothing reaches the game
+              while a window is open. Runs the typewriter (shared/lib/useTypewriter, rAF; held while a
               transition plays), which tells the store when a line has typed out, and Auto's and
               Skip's timer (useReadingModes) while the player is in the game
 src/entities/frame  a frame drawn: the stage's (scene art, shade, characters) and a thumbnail of
@@ -165,10 +168,11 @@ src/widgets/scene-view  the scene: background and characters as one frame, with 
               (`prefers-reduced-motion`): `fade` is a short dissolve, `move` and `vpunch` none.
               None while skipping, rolling back and forward, or after a load
 src/widgets/game-menu  Ren'Py's game menu: a window with its sections in a rail ("Сохранить",
-              "Загрузить", "История", "Настройки"), "Главное меню" at the foot in the game; on
-              `shared/ui/Modal` (Esc and a click outside close it, caught before the game; a
-              window opened inside another — a question about a save — dims that one only, and Esc
-              closes it alone). From the main menu it opens on "Загрузить" and "Настройки"
+              "Загрузить", "История", "Настройки", "Управление"), "Главное меню" at the foot in the
+              game; on `shared/ui/Modal` (Esc and a click outside close it, caught before the game;
+              a window opened inside another — a question about a save — dims that one only, and
+              Esc closes it alone). From the main menu it offers "Загрузить", "Настройки" and
+              "Управление"
 src/features/save-slots  SlotsSection: Ren'Py's file slots — Save and Load, six slots with a
               thumbnail of the saved frame, the date, the scene and the line; Load has the
               autosave over them; a bin on hover and focus, Delete on a slot. SlotQuestionDialog:
@@ -176,6 +180,10 @@ src/features/save-slots  SlotsSection: Ren'Py's file slots — Save and Load, si
 src/features/change-settings  SettingsSection: the settings' tabs and rows, the game menu's part
 src/features/view-history  HistorySection: the lines read and the choices made, the game menu's
               part, translated as it is shown
+src/features/view-controls  ControlsSection: «Управление», Ren'Py's help — the keymap by groups,
+              keys as keycaps (shared/ui/Keycap), the mouse as a glyph (shared/ui/MouseGlyph); a
+              key held while it is open lights up, and the game doesn't see it. useControlsKey: F1
+              opens it on every screen (mounted once, in App)
 src/features/make-choice  ChoiceList: options as lines of text under the prompt, inside the
               dialogue panel (widgets/dialogue-box renders it in place of the caret)
 src/widgets   also: dialogue-box (namebox, line, icon buttons — Auto and Skip pressed while on,
@@ -191,13 +199,15 @@ src/assets    art, music and sound files (WebP / SVG / MP3 / Ogg); sounds/CREDIT
 e2e/          Playwright smoke tests of the main paths: a playthrough to the end, the choice
               (click and digit), Continue after a reload, reading at a speed, Auto and Skip,
               rollback through the choice, the history, save slots (save, load in the game and
-              from the main menu, overwrite, delete), a line waiting for a transition
+              from the main menu, overwrite, delete), a line waiting for a transition,
+              «Управление» (F1, keys tried there leave the game alone)
 .github/workflows/ci.yml  CI on PRs into main: the checks above in one job, e2e in another
 ```
 
 Enforced by `no-restricted-imports` in `.oxlintrc.json`: `engine/` can't import `src/`,
 React or MobX; `src/` can't import the engine except via `@engine`. The downward-only rule
-between FSD layers is kept by hand.
+between FSD layers is kept by hand: no import up, none sideways between two slices of one layer
+(what two features share goes down to `shared/`, as the keymap did).
 
 Scenes are written with the factories from `src/content/dsl.ts` (`scene`, `show`, `say`,
 `narrate`, `goTo`, `choice`, `option`, …), never as raw command objects. A choice may ask with a

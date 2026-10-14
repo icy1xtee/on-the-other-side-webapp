@@ -13,7 +13,7 @@ import { GameMenu } from '@/widgets/game-menu/GameMenu';
 import { Stage } from '@/widgets/stage/Stage';
 
 /** What the game menu offers from here: no saving or history before a game is started. */
-const MENU_SECTIONS: readonly MenuSection[] = ['load', 'settings'];
+const MENU_SECTIONS: readonly MenuSection[] = ['load', 'settings', 'controls'];
 
 // The menu lives on the same stage as the game, like Ren'Py's main_menu: one set of sizes and
 // the same "turn your device" hint. The art is the stage's scene layer.
